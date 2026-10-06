@@ -11,6 +11,74 @@ EvoRuta.dibujo = (function () {
 
   function establecerRutas(rutas) { rutasVisibles = rutas; }
 
+  function dibujarEdificio(posicion, esAlmacen, indice) {
+    contexto.save();
+    contexto.translate(posicion.x, posicion.y);
+    // Los iconos se centran en la coordenada real, sin modificar el escenario.
+    const tamano = EvoRuta.datos.escenario.destinos.length > 18 ? 0.75 : 1;
+    contexto.scale(tamano, tamano);
+    contexto.fillStyle = "#dbe8d7";
+    contexto.beginPath(); contexto.ellipse(0, 10, 15, 5, 0, 0, Math.PI * 2); contexto.fill();
+    contexto.lineWidth = 2;
+    contexto.strokeStyle = "#ffffff";
+    contexto.fillStyle = esAlmacen ? "#ffe0a6" : "#fffaf0";
+    contexto.fillRect(-10, -6, 20, 17);
+    contexto.strokeRect(-10, -6, 20, 17);
+    contexto.fillStyle = esAlmacen ? "#c97b35" : ["#428e82", "#6488bd", "#ad799b"][indice % 3];
+    contexto.beginPath(); contexto.moveTo(-14, -5); contexto.lineTo(0, -16);
+    contexto.lineTo(14, -5); contexto.closePath(); contexto.fill(); contexto.stroke();
+    contexto.fillStyle = esAlmacen ? "#a77549" : "#5a7184";
+    contexto.fillRect(esAlmacen ? -6 : -2, 2, esAlmacen ? 12 : 5, 9);
+    contexto.fillStyle = "#a5dbe2";
+    contexto.fillRect(-7, -3, 4, 4);
+    contexto.fillRect(4, -3, 4, 4);
+    if (esAlmacen) {
+      contexto.strokeStyle = "#edbf80"; contexto.lineWidth = 1;
+      for (let y = 4; y < 11; y += 3) { contexto.beginPath(); contexto.moveTo(-5, y); contexto.lineTo(5, y); contexto.stroke(); }
+    }
+    contexto.restore();
+  }
+
+  function dibujarCarrito() {
+    const posicion = aPantalla(recorrido.posicion);
+    contexto.save();
+    contexto.translate(posicion.x, posicion.y);
+    contexto.rotate(recorrido.angulo || 0);
+    // Vista superior: la cabina y los faros señalan el sentido de avance.
+    contexto.shadowColor = "#18264244"; contexto.shadowBlur = 5;
+    contexto.fillStyle = "#23344a";
+    contexto.fillRect(-9, -10, 7, 4); contexto.fillRect(6, -10, 6, 4);
+    contexto.fillRect(-9, 6, 7, 4); contexto.fillRect(6, 6, 6, 4);
+    contexto.fillStyle = "#ffca61"; contexto.strokeStyle = "#fff"; contexto.lineWidth = 2;
+    contexto.beginPath();
+    contexto.moveTo(-14, -8); contexto.lineTo(9, -8); contexto.lineTo(15, -4);
+    contexto.lineTo(15, 4); contexto.lineTo(9, 8); contexto.lineTo(-14, 8);
+    contexto.closePath(); contexto.fill(); contexto.stroke();
+    contexto.shadowBlur = 0;
+    contexto.fillStyle = "#31546b"; contexto.fillRect(4, -5, 5, 10);
+    contexto.fillStyle = "#fff5d4"; contexto.fillRect(12, -6, 3, 3); contexto.fillRect(12, 3, 3, 3);
+    contexto.fillStyle = "#c88436"; contexto.fillRect(-10, -4, 8, 8);
+    contexto.strokeStyle = "#ffdf95"; contexto.lineWidth = 1;
+    contexto.strokeRect(-10, -4, 8, 8);
+    contexto.restore();
+  }
+
+  function dibujarCaminoAnimado() {
+    if (!recorrido) return;
+    contexto.save();
+    contexto.lineJoin = "round"; contexto.lineCap = "round";
+    contexto.beginPath();
+    recorrido.puntos.forEach(function (p, i) {
+      const q = aPantalla(p);
+      if (i) contexto.lineTo(q.x, q.y); else contexto.moveTo(q.x, q.y);
+    });
+    // Camino ilustrado sobre los mismos segmentos euclidianos, sin desvíos.
+    contexto.strokeStyle = "#ccd8d8"; contexto.lineWidth = 12; contexto.stroke();
+    contexto.strokeStyle = "#f9fcf8"; contexto.lineWidth = 2;
+    contexto.setLineDash([5, 7]); contexto.stroke();
+    contexto.restore();
+  }
+
   function dibujarRutas() {
     const escenario = EvoRuta.datos.escenario;
     const porId = new Map(escenario.destinos.map(function (punto) { return [punto.id, punto]; }));
@@ -82,23 +150,17 @@ EvoRuta.dibujo = (function () {
     contexto.fillText("X", vista.izquierda + lado + 19, vista.arriba + lado + 18);
     contexto.fillText("Y", vista.izquierda - 20, vista.arriba - 12);
     dibujarRutas();
-    EvoRuta.datos.puntos().forEach(function (punto) {
+    dibujarCaminoAnimado();
+    EvoRuta.datos.puntos().forEach(function (punto, indice) {
       const posicion = aPantalla(punto);
       const esAlmacen = punto.id === "A";
-      contexto.fillStyle = esAlmacen ? "#dc854c" : "#176b50";
-      contexto.strokeStyle = "#ffffff";
-      contexto.lineWidth = 2.5;
-      contexto.beginPath();
-      if (esAlmacen) contexto.rect(posicion.x - 7, posicion.y - 7, 14, 14);
-      else contexto.arc(posicion.x, posicion.y, 6, 0, Math.PI * 2);
-      contexto.fill();
-      contexto.stroke();
+      dibujarEdificio(posicion, esAlmacen, indice);
       const etiqueta = esAlmacen ? "A · Almacén" : punto.id;
       contexto.font = "600 11px system-ui, sans-serif";
       contexto.textAlign = "left";
       const anchoEtiqueta = contexto.measureText(etiqueta).width;
-      const xEtiqueta = Math.min(posicion.x + 11, vista.ancho - anchoEtiqueta - 5);
-      const yEtiqueta = posicion.y - 11;
+      const xEtiqueta = Math.min(posicion.x + 15, vista.ancho - anchoEtiqueta - 5);
+      const yEtiqueta = Math.max(12, posicion.y - 17);
       contexto.lineWidth = 4;
       contexto.strokeStyle = "#f6f8f3";
       contexto.strokeText(etiqueta, xEtiqueta, yEtiqueta);
@@ -106,13 +168,7 @@ EvoRuta.dibujo = (function () {
       contexto.fillText(etiqueta, xEtiqueta, yEtiqueta);
     });
     if (recorrido) {
-      contexto.setLineDash([3, 3]); contexto.strokeStyle = "#193c36"; contexto.lineWidth = 3;
-      contexto.beginPath();
-      recorrido.puntos.forEach(function (p, i) { const q = aPantalla(p); if (i) contexto.lineTo(q.x, q.y); else contexto.moveTo(q.x, q.y); });
-      contexto.stroke(); contexto.setLineDash([]);
-      const q = aPantalla(recorrido.posicion);
-      contexto.beginPath(); contexto.arc(q.x, q.y, 9, 0, Math.PI * 2);
-      contexto.fillStyle = "#ffd34e"; contexto.fill(); contexto.strokeStyle = "#193c36"; contexto.stroke();
+      dibujarCarrito();
     }
     canvas.setAttribute("aria-label", "Plano con un almacén y " + EvoRuta.datos.escenario.destinos.length + " destinos. Posiciones disponibles en el editor de coordenadas.");
   }

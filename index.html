@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#123f38">
+  <meta name="theme-color" content="#111b35">
   <title>EvoRuta · Laboratorio de rutas</title>
   <link rel="stylesheet" href="css/styles.css">
   <script defer src="js/datos.js"></script>
@@ -21,45 +21,49 @@
 <body>
   <header class="cabecera">
     <a class="marca" href="index.html" aria-label="EvoRuta, inicio"><span class="simbolo" aria-hidden="true">E↗</span>EvoRuta</a>
-    <span class="subtitulo">Laboratorio de algoritmos evolutivos</span>
-    <span class="insignia">Etapa 07 · Experimentos</span>
+    <nav class="navegacion" aria-label="Secciones"><a href="#laboratorio">Simulador</a><a href="#comparacion">Resultados</a><a href="#experimentos">Experimentos</a></nav>
+    <span class="insignia">●  Laboratorio interactivo</span>
   </header>
   <main>
-    <div class="introduccion"><div><p class="sobrelinea">REPARTO COMUNITARIO</p><h1>Un punto de partida.<br>Muchas rutas posibles.</h1><p>Diseña un escenario y compara una ruta aleatoria con el vecino más cercano y el algoritmo genético para repartir alimentos o apoyos.</p></div><div class="nota-local"><span aria-hidden="true">◉</span> Funciona sin conexión<br><small>Coordenadas ficticias · Plano euclidiano</small></div></div>
-    <div class="espacio-trabajo">
+    <section class="introduccion" aria-labelledby="titulo-principal">
+      <div class="hero-texto"><p class="sobrelinea">ALGORITMOS QUE CONECTAN COMUNIDADES</p><h1>Explora. Evoluciona.<br><span>Encuentra tu ruta.</span></h1><p>Un almacén, muchos destinos y tres maneras de conectar los puntos. Experimenta con el reparto comunitario y descubre cómo aprende un algoritmo.</p><div class="hero-etiquetas"><span>↗  8–30 destinos</span><span>⌁  3 métodos</span><span>●  Sin conexión</span></div></div>
+      <div class="hero-visual" aria-hidden="true"><div class="orbita orbita-uno"></div><div class="orbita orbita-dos"></div><svg viewBox="0 0 360 200" fill="none"><path d="M45 145 108 47 218 34 310 98 235 161 137 130 45 145" stroke="#6be9d1" stroke-width="3"/><path d="M108 47 235 161 218 34 45 145 310 98 137 130" stroke="#8294c6" stroke-width="1.5" stroke-dasharray="5 7"/><g fill="#6be9d1" stroke="#172541" stroke-width="5"><circle cx="108" cy="47" r="9"/><circle cx="218" cy="34" r="9"/><circle cx="310" cy="98" r="9"/><circle cx="235" cy="161" r="9"/><circle cx="45" cy="145" r="9"/></g><rect x="124" y="117" width="26" height="26" rx="7" fill="#ffb960" stroke="#172541" stroke-width="5"/></svg><span class="visual-etiqueta">IDEAS EN MOVIMIENTO</span></div>
+    </section>
+    <div class="guia-flujo" aria-label="Cómo usar EvoRuta"><a href="#laboratorio"><b>01</b><span>Diseña el escenario<small>Coloca y mueve destinos</small></span></a><a href="#configuracion"><b>02</b><span>Pon a prueba la evolución<small>Configura, inicia y observa</small></span></a><a href="#comparacion"><b>03</b><span>Compara y descubre<small>Explora rutas y resultados</small></span></a></div>
+    <div class="espacio-trabajo" id="laboratorio">
       <section class="panel escenario" aria-labelledby="titulo-escenario">
         <div class="titulo-panel"><div><p class="sobrelinea">01 / DISEÑA</p><h2 id="titulo-escenario">Escenario de reparto</h2></div><span id="conteo" class="contador">8 destinos</span></div>
         <div class="herramientas" role="group" aria-label="Herramientas del escenario">
-          <button type="button" data-modo="mover" aria-pressed="true">Mover puntos</button>
-          <button type="button" data-modo="agregar" aria-pressed="false">+ Agregar destino</button>
-          <button type="button" data-modo="eliminar" aria-pressed="false">Eliminar destino</button>
-          <button type="button" id="restablecer" class="boton-simple">Restaurar escenario de ejemplo</button>
+          <button type="button" data-modo="mover" aria-pressed="true">↔ Mover</button>
+          <button type="button" data-modo="agregar" aria-pressed="false">＋ Agregar</button>
+          <button type="button" data-modo="eliminar" aria-pressed="false">− Eliminar</button>
+          <button type="button" id="restablecer" class="boton-simple" title="Restaurar escenario de ejemplo">↺ Restaurar ejemplo</button>
         </div>
         <p id="instruccion" class="ayuda">Arrastra un destino o el almacén para cambiar su posición.</p>
         <div class="control-rutas"><label>Mostrar recorrido<select id="vista-ruta" disabled><option value="todas">Todos los métodos</option><option value="ambas">Ambas referencias</option><option value="aleatoria">Ruta aleatoria</option><option value="vecino">Vecino más cercano</option><option value="genetico">Algoritmo genético</option></select></label><div class="leyenda-rutas"><span><i class="trazo-aleatoria"></i>Aleatoria · discontinua</span><span><i class="trazo-vecino"></i>Vecino · continua</span><span><i class="trazo-genetico"></i>Genético · raya y punto</span></div></div>
-        <fieldset class="controles-recorrido"><legend>Animación del recorrido · independiente de la evolución</legend>
-          <label>Ruta para animar<select id="ruta-animacion"><option value="aleatoria">Ruta aleatoria</option><option value="vecino">Vecino más cercano</option><option value="genetico">Mejor ruta genética</option></select></label>
-          <button id="reproducir-ruta" type="button" disabled>Reproducir recorrido</button>
-          <button id="detener-ruta" type="button" disabled>Detener recorrido</button>
-          <p id="estado-animacion" class="ayuda" role="status">Calcula una ruta para reproducirla. El punto amarillo sigue una copia del recorrido seleccionado.</p>
-        </fieldset>
         <div class="plano"><canvas id="plano" aria-label="Plano del almacén y los ocho destinos. Usa el editor de coordenadas que aparece debajo como alternativa al arrastre." role="img">Plano de reparto. Las posiciones también están disponibles en el editor de coordenadas.</canvas></div>
         <div class="pie-plano"><div class="leyenda"><span><i class="marca-almacen"></i>Almacén</span><span><i class="marca-destino"></i>Destino</span></div><span>0–100 unidades · Misma escala X/Y</span></div>
+        <fieldset class="controles-recorrido"><legend>Reproduce una ruta</legend>
+          <label>Ruta para animar<select id="ruta-animacion"><option value="aleatoria">Ruta aleatoria</option><option value="vecino">Vecino más cercano</option><option value="genetico">Mejor ruta genética</option></select></label>
+          <button id="reproducir-ruta" type="button" disabled>▶ Reproducir</button>
+          <button id="detener-ruta" type="button" disabled>■ Detener</button>
+          <p id="estado-animacion" class="ayuda" role="status">Calcula una ruta y pulsa Reproducir: el carrito visita las casas y regresa al almacén siguiendo el recorrido seleccionado.</p>
+        </fieldset>
         <details class="editor"><summary>Editar coordenadas con precisión</summary><div class="campos-editor"><label>Punto<select id="punto"></select></label><label>X<input id="coordenada-x" type="number" min="0" max="100" step="0.1"></label><label>Y<input id="coordenada-y" type="number" min="0" max="100" step="0.1"></label><button type="button" id="aplicar">Aplicar</button><button type="button" id="agregar-centro">Agregar al centro</button><button type="button" id="eliminar-seleccion">Eliminar seleccionado</button></div></details>
         <p id="estado" class="estado" role="status" aria-live="polite">Escenario inicial: un almacén y ocho destinos. Admite entre 8 y 30 destinos.</p>
       </section>
-      <aside class="panel parametros" aria-labelledby="titulo-parametros">
+      <aside id="configuracion" class="panel parametros" aria-labelledby="titulo-parametros">
         <p class="sobrelinea">02 / CONFIGURA</p><h2 id="titulo-parametros">Algoritmo genético</h2><p class="texto-secundario">Configura la búsqueda y observa la mejor ruta desde la generación 0.</p>
         <fieldset id="parametros-geneticos"><legend>Configuración de la evolución</legend>
           <label>Tamaño de población (3–300)<input id="poblacion" type="number" min="3" max="300" step="1" value="60" required></label>
           <label>Generaciones (0–2000)<input id="generaciones" type="number" min="0" max="2000" step="1" value="150" required></label>
           <label>Mutación por descendiente (%)<input id="mutacion" type="number" min="0" max="100" step="0.1" value="15" required></label>
-          <p class="ayuda">Torneo de 3 · Cruce OX en cada reproducción · Un élite por generación. Los límites de población y generaciones mantienen manejable la ejecución en el navegador.</p>
+          <p class="ayuda">Torneo de 3 · Cruce OX en cada reproducción · Un élite por generación. </p>
         </fieldset>
-        <p id="validacion-escenario" class="estado" role="status" aria-live="polite"></p><div class="acciones"><button id="ejecutar" aria-describedby="validacion-escenario" type="button" disabled class="principal">Calcular rutas de referencia</button><button id="iniciar" type="button">Iniciar evolución</button><button id="pausar" type="button" disabled>Pausar</button><button id="continuar" type="button" disabled>Continuar</button><button id="paso" type="button" disabled>Avanzar una generación</button><button id="reiniciar" type="button" disabled>Reiniciar ejecución</button></div><p class="nota">Recorrido: almacén → todos los destinos una sola vez → almacén. La edición y los parámetros quedan bloqueados hasta reiniciar, incluso en pausa o al finalizar.</p>
-      <p id="estado-simulacion" class="estado" role="status" aria-live="polite">Lista para iniciar.</p><p class="estado">Generación: <strong id="generacion-actual">—</strong></p></aside>
+        <p id="validacion-escenario" class="estado" role="status" aria-live="polite"></p><div class="acciones"><button id="ejecutar" aria-describedby="validacion-escenario" type="button" disabled class="principal">Calcular rutas de referencia</button><button id="iniciar" type="button" class="boton-iniciar">▶ Iniciar evolución</button><button id="pausar" type="button" disabled>Pausar</button><button id="continuar" type="button" disabled>Continuar</button><button id="paso" type="button" disabled title="Avanzar una generación">+1 generación</button><button id="reiniciar" type="button" disabled>Reiniciar ejecución</button></div><p class="nota">Para editar el escenario o los parámetros, reinicia la ejecución. Tus referencias se conservan.</p>
+      <p id="estado-simulacion" class="estado" role="status" aria-live="polite">Lista para iniciar.</p><p class="generacion">Generación actual <strong id="generacion-actual">—</strong></p></aside>
     </div>
-    <section class="panel resultados" aria-labelledby="titulo-resultados">
+    <section id="comparacion" class="panel resultados" aria-labelledby="titulo-resultados">
       <div class="titulo-panel"><div><p class="sobrelinea">03 / COMPARA</p><h2 id="titulo-resultados">Comparación de los tres métodos</h2></div><span id="etiqueta-resultados" class="etiqueta">Sin resultados vigentes</span></div>
       <div class="tarjetas">
         <article><span class="numero">01</span><h3>Ruta aleatoria</h3><p>Referencia fija para el escenario actual</p><div class="valor"><span id="distancia-aleatoria">—</span> <small>unidades</small></div><p id="orden-aleatoria" class="orden-ruta">Recorrido pendiente de calcular.</p></article>
@@ -69,7 +73,7 @@
       <p id="estado-resultados" class="ayuda" role="status" aria-live="polite">Aún no hay rutas calculadas. Usa «Calcular rutas de referencia» para obtener sus distancias y recorridos.</p>
     </section>
     <div class="inferior"><section class="panel"><p class="sobrelinea">04 / OBSERVA</p><h2>Evolución por generaciones</h2><p id="resumen-grafica" class="ayuda">Inicia la evolución para ver su historial.</p><div class="contenedor-grafica"><canvas id="grafica" role="img" aria-label="Gráfica sin datos. Mejor distancia por generación."></canvas></div><p class="ayuda">Mejor distancia global · Unidades ficticias. Incluye la población inicial (generación 0).</p></section><section class="panel"><p class="sobrelinea">05 / COMPRENDE</p><h2>Cómo evoluciona una ruta</h2><div id="ejemplo-reproduccion" class="didactica"></div></section></div>
-    <section class="panel experimentos" aria-labelledby="titulo-experimentos">
+    <section id="experimentos" class="panel experimentos" aria-labelledby="titulo-experimentos">
       <div class="titulo-panel"><div><p class="sobrelinea">06 / EXPERIMENTA</p><h2 id="titulo-experimentos">Repetir y comparar ejecuciones</h2></div><button id="repetir" type="button" disabled>Repetir con los mismos parámetros</button></div>
       <p class="ayuda">Se registra automáticamente cada ejecución completada. Repetir crea una población nueva con la misma referencia aleatoria y los mismos puntos. Usa «Reiniciar ejecución» para cambiar parámetros; las ejecuciones interrumpidas no se registran.</p>
       <div class="resumen-experimentos"><p>Ejecuciones registradas <strong id="cantidad-ejecuciones">0</strong></p><p>Mejor distancia <strong id="mejor-experimentos">—</strong></p><p>Distancia promedio <strong id="promedio-experimentos">—</strong></p></div>

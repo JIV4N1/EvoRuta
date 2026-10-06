@@ -26,7 +26,9 @@ EvoRuta.animacion = (function () {
     const tramo = Math.min(Math.floor(progreso), puntos.length - 2);
     const fraccion = progreso - tramo;
     const a = puntos[tramo], b = puntos[tramo + 1];
-    EvoRuta.dibujo.establecerRecorrido({ puntos: puntos, posicion: {
+    // El eje Y del Canvas está invertido respecto al plano lógico.
+    const angulo = Math.atan2(-(b.y - a.y), b.x - a.x);
+    EvoRuta.dibujo.establecerRecorrido({ puntos: puntos, angulo: angulo, posicion: {
       x: a.x + (b.x - a.x) * fraccion, y: a.y + (b.y - a.y) * fraccion } });
     EvoRuta.dibujo.dibujar();
     if (progreso === puntos.length - 1) {
