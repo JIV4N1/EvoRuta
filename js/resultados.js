@@ -36,6 +36,7 @@ EvoRuta.resultados = (function () {
   function actualizar() {
     const firma = JSON.stringify(datos.escenario);
     if (firma !== firmaAnterior) {
+      if (EvoRuta.experimentos) EvoRuta.experimentos.limpiarPorCambio();
       if (EvoRuta.animacion) EvoRuta.animacion.detener(false);
       referencias = null;
       mejorGenetico = null;

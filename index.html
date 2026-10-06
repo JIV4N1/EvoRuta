@@ -12,6 +12,7 @@
   <script defer src="js/dibujo.js"></script>
   <script defer src="js/resultados.js"></script>
   <script defer src="js/grafica.js"></script>
+  <script defer src="js/experimentos.js"></script>
   <script defer src="js/simulacion.js"></script>
   <script defer src="js/animacion.js"></script>
   <script defer src="js/didactica.js"></script>
@@ -21,7 +22,7 @@
   <header class="cabecera">
     <a class="marca" href="index.html" aria-label="EvoRuta, inicio"><span class="simbolo" aria-hidden="true">E↗</span>EvoRuta</a>
     <span class="subtitulo">Laboratorio de algoritmos evolutivos</span>
-    <span class="insignia">Etapa 05 · Simulación</span>
+    <span class="insignia">Etapa 07 · Experimentos</span>
   </header>
   <main>
     <div class="introduccion"><div><p class="sobrelinea">REPARTO COMUNITARIO</p><h1>Un punto de partida.<br>Muchas rutas posibles.</h1><p>Diseña un escenario y compara una ruta aleatoria con el vecino más cercano y el algoritmo genético para repartir alimentos o apoyos.</p></div><div class="nota-local"><span aria-hidden="true">◉</span> Funciona sin conexión<br><small>Coordenadas ficticias · Plano euclidiano</small></div></div>
@@ -68,6 +69,17 @@
       <p id="estado-resultados" class="ayuda" role="status" aria-live="polite">Aún no hay rutas calculadas. Usa «Calcular rutas de referencia» para obtener sus distancias y recorridos.</p>
     </section>
     <div class="inferior"><section class="panel"><p class="sobrelinea">04 / OBSERVA</p><h2>Evolución por generaciones</h2><p id="resumen-grafica" class="ayuda">Inicia la evolución para ver su historial.</p><div class="contenedor-grafica"><canvas id="grafica" role="img" aria-label="Gráfica sin datos. Mejor distancia por generación."></canvas></div><p class="ayuda">Mejor distancia global · Unidades ficticias. Incluye la población inicial (generación 0).</p></section><section class="panel"><p class="sobrelinea">05 / COMPRENDE</p><h2>Cómo evoluciona una ruta</h2><div id="ejemplo-reproduccion" class="didactica"></div></section></div>
+    <section class="panel experimentos" aria-labelledby="titulo-experimentos">
+      <div class="titulo-panel"><div><p class="sobrelinea">06 / EXPERIMENTA</p><h2 id="titulo-experimentos">Repetir y comparar ejecuciones</h2></div><button id="repetir" type="button" disabled>Repetir con los mismos parámetros</button></div>
+      <p class="ayuda">Se registra automáticamente cada ejecución completada. Repetir crea una población nueva con la misma referencia aleatoria y los mismos puntos. Usa «Reiniciar ejecución» para cambiar parámetros; las ejecuciones interrumpidas no se registran.</p>
+      <div class="resumen-experimentos"><p>Ejecuciones registradas <strong id="cantidad-ejecuciones">0</strong></p><p>Mejor distancia <strong id="mejor-experimentos">—</strong></p><p>Distancia promedio <strong id="promedio-experimentos">—</strong></p></div>
+      <p id="historial-vacio" class="ayuda">Todavía no hay ejecuciones completas en este escenario.</p>
+      <div class="tabla-experimentos" tabindex="0" role="region" aria-label="Historial de ejecuciones; desplazamiento horizontal disponible">
+        <table><caption>Resultados del escenario actual · Distancias en unidades ficticias</caption><thead><tr><th scope="col">Ejecución</th><th scope="col">Población</th><th scope="col">Generaciones</th><th scope="col">Mutación</th><th scope="col">Distancia final</th><th scope="col">Mejora frente a aleatoria</th><th scope="col">Mejora frente a vecino</th></tr></thead><tbody id="ejecuciones-registradas"></tbody></table>
+      </div>
+      <p id="aviso-experimentos" class="estado" role="status" aria-live="polite">El historial se conserva solo en memoria: se pierde al recargar la página o cambiar el escenario.</p>
+      <p class="ayuda">Las diferencias pueden deberse al azar de las poblaciones, el cruce y la mutación. Para observar ese efecto, repite con los mismos parámetros. El promedio incluye todas las ejecuciones de la tabla, incluso si cambiaste parámetros; no garantiza resultados futuros. Una mejora negativa indica una ruta genética más larga.</p>
+    </section>
   </main><footer>EvoRuta <span>Proyecto académico · Escenario ficticio, sin datos geográficos reales</span></footer>
 </body>
 </html>

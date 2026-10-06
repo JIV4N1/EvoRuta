@@ -23,3 +23,14 @@
 .gen{font-size:.72rem;padding:6px;border:1px solid var(--borde);border-radius:5px;background:var(--fondo)}
 .gen.heredado{background:#d9ebd1;border-bottom:3px solid #176b50}
 .gen.intercambiado{outline:2px solid #a44613;outline-offset:1px;font-weight:700}
+/* La tabla conserva sus columnas en celular mediante desplazamiento horizontal. */
+.experimentos{margin-top:22px}
+.resumen-experimentos{display:flex;flex-wrap:wrap;gap:16px 36px;margin:18px 0;color:var(--secundario);font-size:.8rem}
+.resumen-experimentos strong{display:block;font-size:1.5rem;color:var(--tinta);margin-top:7px;font-variant-numeric:tabular-nums}
+.tabla-experimentos{overflow-x:auto;max-width:100%;border:1px solid var(--borde);border-radius:8px}
+.tabla-experimentos table{width:100%;border-collapse:collapse;font-size:.8rem;text-align:left;font-variant-numeric:tabular-nums}
+.tabla-experimentos caption{text-align:left;padding:14px;color:var(--secundario)}
+.tabla-experimentos th,.tabla-experimentos td{padding:12px;min-width:95px;border-top:1px solid var(--borde)}
+.tabla-experimentos thead{background:var(--menta)}
+.tabla-experimentos tbody tr:nth-child(even){background:var(--fondo)}
+@media(max-width:760px){.experimentos .titulo-panel{flex-direction:column;align-items:stretch}}

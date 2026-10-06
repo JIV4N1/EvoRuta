@@ -3,6 +3,7 @@
 EvoRuta.simulacion = (function () {
   let ejecucion = null, estado = null, fase = "lista", temporizador = null;
   let controlesGuardados = [];
+  let parametrosEjecucion = null, registrada = false;
   const obtener = function (id) { return document.getElementById(id); };
   const mensaje = obtener("estado-simulacion");
 
@@ -23,6 +24,7 @@ EvoRuta.simulacion = (function () {
     obtener("continuar").disabled = fase !== "pausada";
     obtener("paso").disabled = fase !== "pausada";
     obtener("reiniciar").disabled = !bloqueada();
+    obtener("repetir").disabled = fase !== "terminada";
   }
   function porcentaje(referencia, distancia) {
     return referencia === 0 ? null : (referencia - distancia) / referencia * 100;
@@ -53,7 +55,14 @@ EvoRuta.simulacion = (function () {
   function avanzar() {
     estado = ejecucion.avanzar();
     if (estado.terminado) { fase = "terminada"; cancelarTemporizador(); mensaje.textContent = "Ejecución terminada. Reinicia para configurar otra búsqueda o editar el escenario."; }
+    registrarFinal();
     mostrar();
+  }
+  function registrarFinal() {
+    // Una sola fila por ejecución completa, incluida una con cero generaciones.
+    if (!estado || !estado.terminado || registrada) return;
+    EvoRuta.experimentos.registrar(parametrosEjecucion, estado.mejor.distancia, EvoRuta.resultados.obtener());
+    registrada = true;
   }
   function programar() {
     if (fase !== "ejecutando" || temporizador !== null) return;
@@ -73,13 +82,16 @@ EvoRuta.simulacion = (function () {
       // Consultar referencias nunca vuelve a sortearlas si el escenario no cambió.
       obtener("ejecutar").click();
       const escenario = EvoRuta.datos.escenario;
+      parametrosEjecucion = { poblacion: Number(campos[0].value), generaciones: Number(campos[1].value),
+        probabilidadMutacion: Number(campos[2].value) / 100 };
+      registrada = false;
       ejecucion = EvoRuta.genetico.crearEjecucion({ almacen: escenario.almacen, destinos: escenario.destinos,
-        referencia: EvoRuta.resultados.obtener().aleatoria.ruta, poblacion: Number(campos[0].value),
-        generaciones: Number(campos[1].value), probabilidadMutacion: Number(campos[2].value) / 100 });
+        referencia: EvoRuta.resultados.obtener().aleatoria.ruta, ...parametrosEjecucion });
       estado = ejecucion.obtenerEstado();
       fase = estado.terminado ? "terminada" : "ejecutando";
       bloquearEdicion(true);
       mensaje.textContent = estado.terminado ? "Ejecución terminada en generación 0. Reinicia para configurar otra búsqueda." : "Evolución en curso. Puedes pausar para inspeccionar o avanzar paso a paso.";
+      registrarFinal();
       mostrar(); programar();
     } catch (error) { mensaje.textContent = error.message; }
   }
@@ -87,6 +99,7 @@ EvoRuta.simulacion = (function () {
     if (EvoRuta.animacion) EvoRuta.animacion.detener(false);
     cancelarTemporizador();
     ejecucion = null; estado = null; fase = "lista";
+    parametrosEjecucion = null; registrada = false;
     bloquearEdicion(false);
     mensaje.textContent = "Lista para una nueva ejecución. Se conservan el escenario y sus referencias vigentes.";
     mostrar();
@@ -105,6 +118,11 @@ EvoRuta.simulacion = (function () {
     try { avanzar(); } catch (error) { fase = "error"; mensaje.textContent = error.message + " Reinicia la ejecución."; actualizarControles(); }
   });
   obtener("reiniciar").addEventListener("click", reiniciar);
+  obtener("repetir").addEventListener("click", function () {
+    if (fase !== "terminada") return;
+    reiniciar();
+    iniciar();
+  });
   return { bloqueada: bloqueada, reiniciar: reiniciar, actualizarControles: actualizarControles,
     porcentaje: porcentaje, describirMejora: describirMejora };
 })();

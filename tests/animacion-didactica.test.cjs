@@ -27,7 +27,7 @@ function cargar(){
  ctx.window=ctx;vm.createContext(ctx);
  get('vista-ruta').value='todas';get('ruta-animacion').value='aleatoria';
  get('poblacion').value='10';get('generaciones').value='3';get('mutacion').value='100';
- for(const f of ['datos','rutas','genetico','dibujo','resultados','grafica','simulacion','animacion','didactica','interaccion'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../js',f+'.js'),'utf8'),ctx);
+ for(const f of ['datos','rutas','genetico','dibujo','resultados','grafica','experimentos','simulacion','animacion','didactica','interaccion'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../js',f+'.js'),'utf8'),ctx);
  let dibujo=null;const original=ctx.EvoRuta.dibujo.establecerRecorrido;
  ctx.EvoRuta.dibujo.establecerRecorrido=d=>{dibujo=d;original(d);};
  return {app:ctx.EvoRuta,get,frames,timers,dibujo:()=>dibujo,frame:t=>{const fs=Array.from(frames.values());frames.clear();fs.forEach(f=>f(t));}};

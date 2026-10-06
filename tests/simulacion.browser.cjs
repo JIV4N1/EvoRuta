@@ -17,6 +17,7 @@ const path = require('node:path');
     await page.goto(pathToFileURL(path.join(__dirname, '../index.html')).href);
     // Reloj controlado: prueba determinista de pausa y temporizadores duplicados.
     await page.clock.install();
+    await page.clock.pauseAt(new Date());
     await page.locator('#generaciones').fill('5');
     await page.locator('#poblacion').fill('12');
     await page.locator('#ejecutar').click();
