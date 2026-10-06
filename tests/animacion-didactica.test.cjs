@@ -2,6 +2,8 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 function cargar(){
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const ids=new Set(Array.from(html.matchAll(/\bid="([^"]+)"/g),m=>m[1]));
  class Elemento{
   constructor(){this.value='';this.children=[];this.listeners={};this.style={};this.dataset={};this.disabled=false;}
   addEventListener(n,f){this.listeners[n]=f;}
@@ -13,7 +15,7 @@ function cargar(){
   reportValidity(){return true;}
   checkValidity(){return true;}
  }
- const elementos={},get=id=>elementos[id] ||= new Elemento();
+ const elementos={},get=id=>{assert.ok(ids.has(id),'ID ausente en index.html: '+id);return elementos[id] ||= new Elemento();};
  const botones=['mover','agregar','eliminar'].map(m=>{const e=new Elemento();e.dataset.modo=m;return e;});
  const controles=['coordenada-x','coordenada-y','punto','aplicar','agregar-centro','eliminar-seleccion','restablecer'].map(get).concat(botones);
  for(const id of ['plano','grafica']){
@@ -27,10 +29,12 @@ function cargar(){
  ctx.window=ctx;vm.createContext(ctx);
  get('vista-ruta').value='todas';get('ruta-animacion').value='aleatoria';
  get('poblacion').value='10';get('generaciones').value='3';get('mutacion').value='100';
- for(const f of ['datos','rutas','genetico','dibujo','resultados','grafica','experimentos','simulacion','animacion','didactica','interaccion'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../js',f+'.js'),'utf8'),ctx);
- let dibujo=null;const original=ctx.EvoRuta.dibujo.establecerRecorrido;
- ctx.EvoRuta.dibujo.establecerRecorrido=d=>{dibujo=d;original(d);};
- return {app:ctx.EvoRuta,get,frames,timers,dibujo:()=>dibujo,frame:t=>{const fs=Array.from(frames.values());frames.clear();fs.forEach(f=>f(t));}};
+ for(const m of html.matchAll(/<script defer src="([^"]+)"><\/script>/g))vm.runInContext(fs.readFileSync(path.join(__dirname,'..',m[1]),'utf8'),ctx);
+ let dibujo=null, ultimoDibujo=null;const original=ctx.EvoRuta.dibujo.establecerRecorrido;
+ ctx.EvoRuta.dibujo.establecerRecorrido=d=>{dibujo=d;if(d)ultimoDibujo=d;original(d);};
+ return {app:ctx.EvoRuta,get,frames,timers,dibujo:()=>dibujo,ultimoDibujo:()=>ultimoDibujo,
+  tick:()=>{const pendientes=Array.from(timers.values());timers.clear();pendientes.forEach(f=>f());},
+  frame:t=>{const fs=Array.from(frames.values());frames.clear();fs.forEach(f=>f(t));}};
 }
 test('Animación visita la ruta real, vuelve a A y no modifica resultados',()=>{
  const h=cargar();h.get('ejecutar').click();const antes=JSON.stringify(h.app.resultados.obtener());
@@ -38,10 +42,13 @@ test('Animación visita la ruta real, vuelve a A y no modifica resultados',()=>{
  const orden=h.app.resultados.obtener().aleatoria.ruta;
  assert.deepEqual(Array.from(h.dibujo().puntos,p=>p.id),['A',...orden,'A']);
  for(let i=0;i<=orden.length+1;i++){
-  h.frame(i*650);const esperado=h.dibujo().puntos[i];
-  assert.equal(h.dibujo().posicion.x,esperado.x);assert.equal(h.dibujo().posicion.y,esperado.y);
+  h.frame(i*650);const esperado=h.ultimoDibujo().puntos[i];
+  assert.equal(h.ultimoDibujo().posicion.x,esperado.x);assert.equal(h.ultimoDibujo().posicion.y,esperado.y);
  }
  assert.equal(h.frames.size,0);assert.equal(h.get('detener-ruta').disabled,true);
+ assert.equal(h.dibujo(),null);
+ h.get('vista-ruta').value='vecino';h.get('vista-ruta').emitir('change');
+ assert.equal(h.dibujo(),null);
  assert.match(h.get('estado-animacion').textContent,/regreso al almacén/);
  assert.equal(JSON.stringify(h.app.resultados.obtener()),antes);
 });
@@ -96,4 +103,62 @@ test('Registro OX y mutación coincide con el descendiente real, sin inventar ru
    e.padre[0]='ajeno';assert.notEqual(ejec.obtenerEstado().ejemplo.padre[0],'ajeno');
   }
  }
+});
+
+for(const cantidad of [8,30])test(`Flujo completo con ${cantidad} destinos: controles, temporizadores y escenarios aislados`,()=>{
+ const h=cargar();
+ for(let i=0;i<cantidad-8;i++)assert.ok(h.app.datos.agregar(i,0));
+ h.app.resultados.actualizar();
+ if(cantidad===30)h.get('poblacion').value='300';
+ const antes=JSON.stringify(h.app.datos.escenario);
+ h.get('iniciar').click();h.get('iniciar').emitir('click');
+ assert.equal(h.timers.size,1);assert.equal(h.get('generacion-actual').textContent,'0');
+ h.get('agregar-centro').emitir('click');h.get('restablecer').emitir('click');
+ assert.equal(JSON.stringify(h.app.datos.escenario),antes);
+ h.get('pausar').click();assert.equal(h.timers.size,0);h.tick();
+ assert.equal(h.get('generacion-actual').textContent,'0');
+ h.get('paso').click();assert.equal(h.get('generacion-actual').textContent,'1');assert.equal(h.timers.size,0);
+ h.get('continuar').click();h.get('continuar').emitir('click');assert.equal(h.timers.size,1);
+ h.tick();assert.equal(h.get('generacion-actual').textContent,'2');assert.equal(h.timers.size,1);
+ h.tick();assert.equal(h.get('generacion-actual').textContent,'3');assert.equal(h.timers.size,0);
+ h.tick();assert.equal(h.app.experimentos.obtener().length,1);
+ const referencias=JSON.stringify(h.app.resultados.obtener());
+ const ruta=h.app.resultados.obtenerRuta('genetico');
+ assert.equal(h.app.rutas.validarRuta(ruta.ruta,h.app.datos.escenario.destinos),true);
+ const ps=[h.app.datos.escenario.almacen,...Array.from(ruta.ruta,id=>h.app.datos.escenario.destinos.find(p=>p.id===id)),h.app.datos.escenario.almacen];
+ const distancia=ps.slice(1).reduce((s,p,i)=>s+Math.hypot(p.x-ps[i].x,p.y-ps[i].y),0);
+ assert.equal(ruta.distancia,distancia);
+ for(const metodo of ['aleatoria','vecino','genetico']){
+  h.get('ruta-animacion').value=metodo;h.get('ruta-animacion').emitir('change');
+  h.get('reproducir-ruta').click();h.get('reproducir-ruta').emitir('click');assert.equal(h.frames.size,1);
+  h.frame(0);h.frame(100000);assert.equal(h.frames.size,0);assert.equal(h.dibujo(),null);
+  assert.equal(h.ultimoDibujo().puntos.length,cantidad+2);
+  assert.equal(h.ultimoDibujo().posicion.x,50);assert.equal(h.ultimoDibujo().posicion.y,49);
+ }
+ h.get('repetir').click();assert.equal(h.timers.size,1);assert.equal(JSON.stringify(h.app.resultados.obtener()),referencias);
+ h.get('pausar').click();h.get('reiniciar').click();assert.equal(h.timers.size,0);assert.equal(h.app.experimentos.obtener().length,1);
+ h.get('iniciar').click();h.get('reproducir-ruta').click();assert.equal(h.timers.size,1);assert.equal(h.frames.size,1);
+ h.get('reiniciar').click();assert.equal(h.timers.size,0);assert.equal(h.frames.size,0);h.tick();h.frame(99999);
+ assert.equal(h.get('generacion-actual').textContent,'—');
+ h.get('generaciones').value='0';h.get('iniciar').click();assert.equal(h.timers.size,0);assert.equal(h.app.experimentos.obtener().length,2);
+ h.get('reiniciar').click();h.get('coordenada-x').value='51';h.get('coordenada-y').value='49';h.get('aplicar').click();
+ assert.equal(h.app.resultados.obtener(),null);assert.equal(h.app.experimentos.obtener().length,0);
+ assert.equal(h.app.resultados.obtenerRuta('genetico'),null);assert.equal(h.dibujo(),null);
+ assert.equal(h.frames.size,0);assert.equal(h.timers.size,0);
+ assert.match(h.get('ejemplo-reproduccion').children[0].textContent,/Aún no hubo/);
+ h.get('iniciar').click();assert.equal(h.app.experimentos.obtener().length,1);
+ assert.equal(h.app.datos.escenario.almacen.x,51);
+});
+
+test('Comparaciones positivas, negativas, iguales, cero y menores que precisión visible',()=>{
+ const h=cargar(),s=h.app.simulacion;
+ assert.equal(s.porcentaje(200,150),25);assert.equal(s.porcentaje(100,125),-25);
+ assert.equal(s.porcentaje(0,0),null);assert.match(s.describirMejora(100,100),/0.00%.*misma distancia/);
+ for(const distancia of [100.000001,99.999999]){
+  assert.match(s.describirMejora(100,distancia),/inferior a 0.01/);
+  h.app.experimentos.registrar({poblacion:3,generaciones:0,probabilidadMutacion:0},distancia,{aleatoria:{distancia:100},vecino:{distancia:100}});
+ }
+ for(const row of h.get('ejecuciones-registradas').children)assert.match(row.children[6].textContent,/inferior a 0.01/);
+ assert.ok(h.app.experimentos.obtener()[0].mejoraVecino<0);
+ assert.ok(h.app.experimentos.obtener()[1].mejoraVecino>0);
 });

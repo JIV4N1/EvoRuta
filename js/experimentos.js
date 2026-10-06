@@ -34,6 +34,7 @@ EvoRuta.experimentos = (function () {
   }
   function formatoMejora(valor) {
     if (valor === null) return "No calculable (referencia cero)";
+    if (valor !== 0 && Math.abs(valor) < 0.005) return "Diferencia inferior a 0.01 % · " + (valor < 0 ? "más larga" : "más corta");
     return valor.toFixed(2) + "%" + (valor < 0 ? " · más larga" : "");
   }
   function registrar(parametros, distancia, referencias) {

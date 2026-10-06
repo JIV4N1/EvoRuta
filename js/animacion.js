@@ -31,6 +31,8 @@ EvoRuta.animacion = (function () {
     EvoRuta.dibujo.dibujar();
     if (progreso === puntos.length - 1) {
       puntos = null; inicio = null;
+      EvoRuta.dibujo.establecerRecorrido(null);
+      EvoRuta.dibujo.dibujar();
       mensaje.textContent = "Recorrido completo: todos los destinos visitados y regreso al almacén.";
       actualizar();
     } else {

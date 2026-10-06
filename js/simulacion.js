@@ -32,6 +32,7 @@ EvoRuta.simulacion = (function () {
   function describirMejora(referencia, distancia) {
     const mejora = porcentaje(referencia, distancia);
     if (mejora === null) return "No calculable: referencia de distancia cero.";
+    if (mejora !== 0 && Math.abs(mejora) < 0.005) return "Diferencia inferior a 0.01 % · " + (mejora < 0 ? "la ruta genética es más larga" : "la ruta genética es más corta");
     return mejora.toFixed(2) + "% · " + (mejora < 0 ? "la ruta genética es más larga" : mejora > 0 ? "la ruta genética es más corta" : "misma distancia");
   }
   function mostrar() {
