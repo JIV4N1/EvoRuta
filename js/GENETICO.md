@@ -48,3 +48,23 @@ node tests/genetico.test.cjs
 node tests/rutas.test.cjs
 node tests/escenario.test.cjs
 ```
+
+
+## Ejemplo didáctico real
+
+El estado incremental incluye `ejemplo` (`null` en generación 0). Registra el
+primer descendiente incorporado en la última generación: `padre`, `madre`,
+`cortes` inclusivos con índices desde cero, `antes`, `despues` e `intercambio`
+(dos índices distintos o `null` si no hubo mutación). La interfaz muestra las
+posiciones desde uno. El registro no consume sorteos adicionales y se devuelve
+como copia; corresponde al individuo de índice 1, después del élite.
+
+La animación dispone de selector y controles propios. Reproduce una copia de la
+ruta elegida, incluye salida y regreso al almacén y no modifica la evolución.
+Cambiar la selección, editar el escenario o reiniciar cancela el recorrido.
+
+Pruebas de registro, representación y animación con DOM y reloj simulados:
+
+```sh
+node tests/animacion-didactica.test.cjs
+```

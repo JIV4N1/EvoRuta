@@ -30,11 +30,13 @@ EvoRuta.resultados = (function () {
       rutasVisibles.push({ ruta: mejorGenetico.ruta, color: "#c15b19", guiones: [10, 4, 2, 4] });
     }
     EvoRuta.dibujo.establecerRutas(rutasVisibles);
+    if (EvoRuta.animacion) EvoRuta.animacion.actualizar();
   }
 
   function actualizar() {
     const firma = JSON.stringify(datos.escenario);
     if (firma !== firmaAnterior) {
+      if (EvoRuta.animacion) EvoRuta.animacion.detener(false);
       referencias = null;
       mejorGenetico = null;
       if (EvoRuta.simulacion) EvoRuta.simulacion.reiniciar();
@@ -71,5 +73,9 @@ EvoRuta.resultados = (function () {
     return referencias ? JSON.parse(JSON.stringify(referencias)) : null;
   }
   function establecerGenetico(mejor) { mejorGenetico = mejor; mostrar(); }
-  return { actualizar: actualizar, obtener: obtener, establecerGenetico: establecerGenetico };
+  function obtenerRuta(metodo) {
+    const resultado = metodo === "genetico" ? mejorGenetico : referencias && referencias[metodo];
+    return resultado ? JSON.parse(JSON.stringify(resultado)) : null;
+  }
+  return { obtenerRuta: obtenerRuta, actualizar: actualizar, obtener: obtener, establecerGenetico: establecerGenetico };
 })();

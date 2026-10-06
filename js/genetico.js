@@ -38,7 +38,7 @@ EvoRuta.genetico = (function () {
 
   // OX: segmento inclusivo del primer padre; completar circularmente con el
   // orden del segundo desde el punto siguiente al corte, omitiendo IDs usados.
-  function cruceOX(padre, madre, azar = Math.random) {
+  function cruceOX(padre, madre, azar = Math.random, registrar) {
     comprobarPermutacion(padre);
     comprobarPermutacion(madre);
     const ids = new Set(padre);
@@ -64,13 +64,15 @@ EvoRuta.genetico = (function () {
       }
       return resultado;
     }
+    if (registrar) registrar(cortes.slice());
     return [hijo(padre, madre), hijo(madre, padre)];
   }
 
-  function mutarIntercambio(ruta, azar = Math.random) {
+  function mutarIntercambio(ruta, azar = Math.random, registrar) {
     comprobarPermutacion(ruta);
     const resultado = ruta.slice();
     const posiciones = posicionesDistintas(resultado.length, azar);
+    if (registrar) registrar(posiciones.slice());
     const temporal = resultado[posiciones[0]];
     resultado[posiciones[0]] = resultado[posiciones[1]];
     resultado[posiciones[1]] = temporal;
@@ -116,9 +118,9 @@ EvoRuta.genetico = (function () {
       if (alGeneracion) alGeneracion({ generacion: generacion, mejor: copiar(mejor), poblacion: poblacion.map(copiar) });
     }
     registrar(0);
-    let generacion = 0;
+    let generacion = 0, ejemplo = null;
     function obtenerEstado() {
-      return { generacion: generacion, terminado: generacion >= generaciones, mejor: copiar(mejor),
+      return { ejemplo: ejemplo ? JSON.parse(JSON.stringify(ejemplo)) : null, generacion: generacion, terminado: generacion >= generaciones, mejor: copiar(mejor),
         historial: historial.map(function (dato) { return { ...dato }; }), poblacion: poblacion.map(copiar) };
     }
     function avanzar() {
@@ -128,11 +130,18 @@ EvoRuta.genetico = (function () {
       while (siguiente.length < tamano) {
         const padre = torneo(poblacion, azar);
         const madre = torneo(poblacion, azar);
-        const hijos = cruceOX(padre.ruta, madre.ruta, azar);
+        let cortes;
+        const hijos = cruceOX(padre.ruta, madre.ruta, azar, function (valor) { cortes = valor; });
         for (let hijo of hijos) {
           if (siguiente.length === tamano) break;
           // Una decisión por descendiente, no una probabilidad por gen.
-          if (sortear(azar) < probabilidadMutacion) hijo = mutarIntercambio(hijo, azar);
+          const antes = hijo.slice();
+          let intercambio = null;
+          if (sortear(azar) < probabilidadMutacion) hijo = mutarIntercambio(hijo, azar, function (valor) { intercambio = valor; });
+          // Primer descendiente realmente incorporado en esta generación.
+          if (siguiente.length === 1) ejemplo = { generacion: generacion + 1,
+            padre: padre.ruta.slice(), madre: madre.ruta.slice(), cortes: cortes.slice(),
+            antes: antes, despues: hijo.slice(), intercambio: intercambio };
           siguiente.push(evaluar(hijo));
         }
       }
@@ -148,7 +157,7 @@ EvoRuta.genetico = (function () {
     const ejecucion = crearEjecucion(opciones);
     let estado = ejecucion.obtenerEstado();
     while (!estado.terminado) estado = ejecucion.avanzar();
-    return { mejor: estado.mejor, historial: estado.historial, poblacion: estado.poblacion };
+    return { ejemplo: estado.ejemplo, mejor: estado.mejor, historial: estado.historial, poblacion: estado.poblacion };
   }
   return { predeterminados: predeterminados, ejecutar: ejecutar, crearEjecucion: crearEjecucion, torneo: torneo, cruceOX: cruceOX, mutarIntercambio: mutarIntercambio };
 })();

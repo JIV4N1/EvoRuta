@@ -42,6 +42,7 @@ EvoRuta.simulacion = (function () {
     });
     EvoRuta.resultados.establecerGenetico(estado ? estado.mejor : null);
     EvoRuta.grafica.actualizar(estado ? estado.historial : []);
+    if (EvoRuta.didactica) EvoRuta.didactica.mostrar(estado ? estado.ejemplo : null);
     EvoRuta.dibujo.dibujar();
     actualizarControles();
   }
@@ -83,6 +84,7 @@ EvoRuta.simulacion = (function () {
     } catch (error) { mensaje.textContent = error.message; }
   }
   function reiniciar() {
+    if (EvoRuta.animacion) EvoRuta.animacion.detener(false);
     cancelarTemporizador();
     ejecucion = null; estado = null; fase = "lista";
     bloquearEdicion(false);

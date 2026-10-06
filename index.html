@@ -13,6 +13,8 @@
   <script defer src="js/resultados.js"></script>
   <script defer src="js/grafica.js"></script>
   <script defer src="js/simulacion.js"></script>
+  <script defer src="js/animacion.js"></script>
+  <script defer src="js/didactica.js"></script>
   <script defer src="js/interaccion.js"></script>
 </head>
 <body>
@@ -34,6 +36,12 @@
         </div>
         <p id="instruccion" class="ayuda">Arrastra un destino o el almacén para cambiar su posición.</p>
         <div class="control-rutas"><label>Mostrar recorrido<select id="vista-ruta" disabled><option value="todas">Todos los métodos</option><option value="ambas">Ambas referencias</option><option value="aleatoria">Ruta aleatoria</option><option value="vecino">Vecino más cercano</option><option value="genetico">Algoritmo genético</option></select></label><div class="leyenda-rutas"><span><i class="trazo-aleatoria"></i>Aleatoria · discontinua</span><span><i class="trazo-vecino"></i>Vecino · continua</span><span><i class="trazo-genetico"></i>Genético · raya y punto</span></div></div>
+        <fieldset class="controles-recorrido"><legend>Animación del recorrido · independiente de la evolución</legend>
+          <label>Ruta para animar<select id="ruta-animacion"><option value="aleatoria">Ruta aleatoria</option><option value="vecino">Vecino más cercano</option><option value="genetico">Mejor ruta genética</option></select></label>
+          <button id="reproducir-ruta" type="button" disabled>Reproducir recorrido</button>
+          <button id="detener-ruta" type="button" disabled>Detener recorrido</button>
+          <p id="estado-animacion" class="ayuda" role="status">Calcula una ruta para reproducirla. El punto amarillo sigue una copia del recorrido seleccionado.</p>
+        </fieldset>
         <div class="plano"><canvas id="plano" aria-label="Plano del almacén y los ocho destinos. Usa el editor de coordenadas que aparece debajo como alternativa al arrastre." role="img">Plano de reparto. Las posiciones también están disponibles en el editor de coordenadas.</canvas></div>
         <div class="pie-plano"><div class="leyenda"><span><i class="marca-almacen"></i>Almacén</span><span><i class="marca-destino"></i>Destino</span></div><span>0–100 unidades · Misma escala X/Y</span></div>
         <details class="editor"><summary>Editar coordenadas con precisión</summary><div class="campos-editor"><label>Punto<select id="punto"></select></label><label>X<input id="coordenada-x" type="number" min="0" max="100" step="0.1"></label><label>Y<input id="coordenada-y" type="number" min="0" max="100" step="0.1"></label><button type="button" id="aplicar">Aplicar</button><button type="button" id="agregar-centro">Agregar al centro</button><button type="button" id="eliminar-seleccion">Eliminar seleccionado</button></div></details>
@@ -47,7 +55,7 @@
           <label>Mutación por descendiente (%)<input id="mutacion" type="number" min="0" max="100" step="0.1" value="15" required></label>
           <p class="ayuda">Torneo de 3 · Cruce OX en cada reproducción · Un élite por generación. Los límites de población y generaciones mantienen manejable la ejecución en el navegador.</p>
         </fieldset>
-        <p id="validacion-escenario" class="estado" role="status" aria-live="polite"></p><div class="acciones"><button id="ejecutar" aria-describedby="validacion-escenario" type="button" disabled class="principal">Calcular rutas de referencia</button><button id="iniciar" type="button">Iniciar evolución</button><button id="pausar" type="button" disabled>Pausar</button><button id="continuar" type="button" disabled>Continuar</button><button id="paso" type="button" disabled>Avanzar una generación</button><button id="reiniciar" type="button" disabled>Reiniciar ejecución</button><button type="button" disabled>Animar recorrido · Próximamente</button></div><p class="nota">Recorrido: almacén → todos los destinos una sola vez → almacén. La edición y los parámetros quedan bloqueados hasta reiniciar, incluso en pausa o al finalizar.</p>
+        <p id="validacion-escenario" class="estado" role="status" aria-live="polite"></p><div class="acciones"><button id="ejecutar" aria-describedby="validacion-escenario" type="button" disabled class="principal">Calcular rutas de referencia</button><button id="iniciar" type="button">Iniciar evolución</button><button id="pausar" type="button" disabled>Pausar</button><button id="continuar" type="button" disabled>Continuar</button><button id="paso" type="button" disabled>Avanzar una generación</button><button id="reiniciar" type="button" disabled>Reiniciar ejecución</button></div><p class="nota">Recorrido: almacén → todos los destinos una sola vez → almacén. La edición y los parámetros quedan bloqueados hasta reiniciar, incluso en pausa o al finalizar.</p>
       <p id="estado-simulacion" class="estado" role="status" aria-live="polite">Lista para iniciar.</p><p class="estado">Generación: <strong id="generacion-actual">—</strong></p></aside>
     </div>
     <section class="panel resultados" aria-labelledby="titulo-resultados">
@@ -59,7 +67,7 @@
       </div>
       <p id="estado-resultados" class="ayuda" role="status" aria-live="polite">Aún no hay rutas calculadas. Usa «Calcular rutas de referencia» para obtener sus distancias y recorridos.</p>
     </section>
-    <div class="inferior"><section class="panel"><p class="sobrelinea">04 / OBSERVA</p><h2>Evolución por generaciones</h2><p id="resumen-grafica" class="ayuda">Inicia la evolución para ver su historial.</p><div class="contenedor-grafica"><canvas id="grafica" role="img" aria-label="Gráfica sin datos. Mejor distancia por generación."></canvas></div><p class="ayuda">Mejor distancia global · Unidades ficticias. Incluye la población inicial (generación 0).</p></section><section class="panel"><p class="sobrelinea">05 / COMPRENDE</p><h2>Cómo evoluciona una ruta</h2><div class="concepto"><span aria-hidden="true">↔</span><div><h3>Cruce</h3><p>Espacio reservado para visualizar la combinación de rutas.</p></div></div><div class="concepto"><span aria-hidden="true">⇄</span><div><h3>Mutación</h3><p>Espacio reservado para visualizar cambios en una ruta.</p></div></div><p class="ayuda">Explicaciones visuales disponibles en una próxima etapa.</p></section></div>
+    <div class="inferior"><section class="panel"><p class="sobrelinea">04 / OBSERVA</p><h2>Evolución por generaciones</h2><p id="resumen-grafica" class="ayuda">Inicia la evolución para ver su historial.</p><div class="contenedor-grafica"><canvas id="grafica" role="img" aria-label="Gráfica sin datos. Mejor distancia por generación."></canvas></div><p class="ayuda">Mejor distancia global · Unidades ficticias. Incluye la población inicial (generación 0).</p></section><section class="panel"><p class="sobrelinea">05 / COMPRENDE</p><h2>Cómo evoluciona una ruta</h2><div id="ejemplo-reproduccion" class="didactica"></div></section></div>
   </main><footer>EvoRuta <span>Proyecto académico · Escenario ficticio, sin datos geográficos reales</span></footer>
 </body>
 </html>

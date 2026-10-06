@@ -6,6 +6,8 @@ EvoRuta.dibujo = (function () {
   const contexto = canvas.getContext("2d");
   let vista = { escala: 1, izquierda: 0, arriba: 0, ancho: 0, alto: 0 };
   let rutasVisibles = [];
+  let recorrido = null;
+  function establecerRecorrido(valor) { recorrido = valor; }
 
   function establecerRutas(rutas) { rutasVisibles = rutas; }
 
@@ -103,6 +105,15 @@ EvoRuta.dibujo = (function () {
       contexto.fillStyle = "#193c36";
       contexto.fillText(etiqueta, xEtiqueta, yEtiqueta);
     });
+    if (recorrido) {
+      contexto.setLineDash([3, 3]); contexto.strokeStyle = "#193c36"; contexto.lineWidth = 3;
+      contexto.beginPath();
+      recorrido.puntos.forEach(function (p, i) { const q = aPantalla(p); if (i) contexto.lineTo(q.x, q.y); else contexto.moveTo(q.x, q.y); });
+      contexto.stroke(); contexto.setLineDash([]);
+      const q = aPantalla(recorrido.posicion);
+      contexto.beginPath(); contexto.arc(q.x, q.y, 9, 0, Math.PI * 2);
+      contexto.fillStyle = "#ffd34e"; contexto.fill(); contexto.strokeStyle = "#193c36"; contexto.stroke();
+    }
     canvas.setAttribute("aria-label", "Plano con un almacén y " + EvoRuta.datos.escenario.destinos.length + " destinos. Posiciones disponibles en el editor de coordenadas.");
   }
   function buscarPunto(x, y) {
@@ -116,5 +127,5 @@ EvoRuta.dibujo = (function () {
     });
     return masCercano;
   }
-  return { canvas: canvas, dibujar: dibujar, aEscenario: aEscenario, posicionEvento: posicionEvento, buscarPunto: buscarPunto, establecerRutas: establecerRutas };
+  return { canvas: canvas, dibujar: dibujar, aEscenario: aEscenario, posicionEvento: posicionEvento, buscarPunto: buscarPunto, establecerRutas: establecerRutas, establecerRecorrido: establecerRecorrido };
 })();
