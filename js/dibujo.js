@@ -12,15 +12,27 @@ EvoRuta.dibujo = (function () {
   function aEscenario(x, y) {
     return { x: (x - vista.izquierda) / vista.escala, y: 100 - (y - vista.arriba) / vista.escala };
   }
-  function dibujar() {
+  function actualizarVista() {
     const rectangulo = canvas.getBoundingClientRect();
+    const lado = Math.max(1, Math.min(rectangulo.width - 76, rectangulo.height - 62));
+    vista = { escala: lado / EvoRuta.datos.limites.lado, izquierda: (rectangulo.width - lado) / 2, arriba: (rectangulo.height - lado) / 2 - 5, ancho: rectangulo.width, alto: rectangulo.height };
+    return rectangulo;
+  }
+  // clientX/clientY y el rectángulo usan píxeles CSS, también con toque o HiDPI.
+  function posicionEvento(evento) {
+    const rectangulo = actualizarVista();
+    return { x: evento.clientX - rectangulo.left, y: evento.clientY - rectangulo.top };
+  }
+  function dibujar() {
+    const rectangulo = actualizarVista();
     const densidad = window.devicePixelRatio || 1;
-    canvas.width = Math.round(rectangulo.width * densidad);
-    canvas.height = Math.round(rectangulo.height * densidad);
+    const ancho = Math.round(rectangulo.width * densidad);
+    const alto = Math.round(rectangulo.height * densidad);
+    if (canvas.width !== ancho) canvas.width = ancho;
+    if (canvas.height !== alto) canvas.height = alto;
     contexto.setTransform(densidad, 0, 0, densidad, 0, 0);
     // Una única escala mantiene las distancias y proporciones en ambos ejes.
-    const lado = Math.max(1, Math.min(rectangulo.width - 76, rectangulo.height - 62));
-    vista = { escala: lado / 100, izquierda: (rectangulo.width - lado) / 2, arriba: (rectangulo.height - lado) / 2 - 5, ancho: rectangulo.width, alto: rectangulo.height };
+    const lado = vista.escala * EvoRuta.datos.limites.lado;
     contexto.clearRect(0, 0, vista.ancho, vista.alto);
     contexto.lineWidth = 1;
     contexto.font = "10px system-ui, sans-serif";
@@ -81,5 +93,5 @@ EvoRuta.dibujo = (function () {
     });
     return masCercano;
   }
-  return { canvas: canvas, dibujar: dibujar, aEscenario: aEscenario, buscarPunto: buscarPunto };
+  return { canvas: canvas, dibujar: dibujar, aEscenario: aEscenario, posicionEvento: posicionEvento, buscarPunto: buscarPunto };
 })();

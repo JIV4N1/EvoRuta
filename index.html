@@ -25,7 +25,7 @@
           <button type="button" data-modo="mover" aria-pressed="true">Mover puntos</button>
           <button type="button" data-modo="agregar" aria-pressed="false">+ Agregar destino</button>
           <button type="button" data-modo="eliminar" aria-pressed="false">Eliminar destino</button>
-          <button type="button" id="restablecer" class="boton-simple">Restablecer</button>
+          <button type="button" id="restablecer" class="boton-simple">Restaurar escenario de ejemplo</button>
         </div>
         <p id="instruccion" class="ayuda">Arrastra un destino o el almacén para cambiar su posición.</p>
         <div class="plano"><canvas id="plano" aria-label="Plano del almacén y los ocho destinos. Usa el editor de coordenadas que aparece debajo como alternativa al arrastre." role="img">Plano de reparto. Las posiciones también están disponibles en el editor de coordenadas.</canvas></div>
@@ -36,7 +36,7 @@
       <aside class="panel parametros" aria-labelledby="titulo-parametros">
         <p class="sobrelinea">02 / CONFIGURA</p><h2 id="titulo-parametros">Algoritmo genético</h2><p class="texto-secundario">Los parámetros se habilitarán al implementar el algoritmo.</p>
         <fieldset disabled><legend>Parámetros · Próximamente</legend><label>Tamaño de población<input type="number" placeholder="Sin configurar"></label><label>Número de generaciones<input type="number" placeholder="Sin configurar"></label><div class="dos-columnas"><label>Cruce (%)<input type="number" placeholder="—"></label><label>Mutación (%)<input type="number" placeholder="—"></label></div><label>Selección<select><option>Pendiente de implementar</option></select></label></fieldset>
-        <div class="acciones"><button type="button" disabled class="principal">Comparar las tres rutas</button><button type="button" disabled>Animar recorrido</button></div><p class="nota">Recorrido previsto: almacén → todos los destinos una sola vez → almacén.</p>
+        <p id="validacion-escenario" class="estado" role="status" aria-live="polite"></p><div class="acciones"><button id="ejecutar" aria-describedby="validacion-escenario" type="button" disabled class="principal">Comparar las tres rutas</button><button type="button" disabled>Animar recorrido</button></div><p class="nota">Recorrido previsto: almacén → todos los destinos una sola vez → almacén.</p>
       </aside>
     </div>
     <section class="panel resultados" aria-labelledby="titulo-resultados"><div class="titulo-panel"><div><p class="sobrelinea">03 / COMPARA</p><h2 id="titulo-resultados">Tres formas de encontrar una ruta</h2></div><span class="etiqueta">Sin ejecuciones</span></div><div class="tarjetas"><article><span class="numero">01</span><h3>Ruta aleatoria</h3><p>Referencia para la comparación</p><div class="valor">— <small>unidades</small></div><p>Mejora: no aplica (referencia)</p></article><article><span class="numero">02</span><h3>Vecino más cercano</h3><p>El siguiente destino más próximo</p><div class="valor">— <small>unidades</small></div><p>Mejora frente a referencia: —</p></article><article><span class="numero">03</span><h3>Algoritmo genético</h3><p>Una búsqueda a través de generaciones</p><div class="valor">— <small>unidades</small></div><p>Mejora frente a referencia: —</p></article></div><p class="ayuda">Aún no hay rutas calculadas. Las distancias y los porcentajes aparecerán después de una ejecución.</p></section>

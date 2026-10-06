@@ -17,26 +17,36 @@ EvoRuta.datos = (function () {
   }
   function puntos() { return [escenario.almacen].concat(escenario.destinos); }
   function acotar(valor) { return Math.round(Math.max(0, Math.min(limites.lado, valor)) * 10) / 10; }
+  // Comprobar después de redondear evita coincidencias a la precisión del editor.
+  function ocupado(x, y, exceptoId) {
+    return puntos().some(function (punto) {
+      return punto.id !== exceptoId && punto.x === acotar(x) && punto.y === acotar(y);
+    });
+  }
+  function validar() {
+    const cantidad = escenario.destinos.length;
+    const faltantes = Math.max(0, limites.minimo - cantidad);
+    return { valido: faltantes === 0 && cantidad <= limites.maximo, cantidad: cantidad, faltantes: faltantes };
+  }
   function mover(id, x, y) {
     const punto = puntos().find(function (actual) { return actual.id === id; });
-    if (!punto || !Number.isFinite(x) || !Number.isFinite(y)) return false;
+    if (!punto || !Number.isFinite(x) || !Number.isFinite(y) || ocupado(x, y, id)) return false;
     punto.x = acotar(x);
     punto.y = acotar(y);
     return true;
   }
   function agregar(x, y) {
-    if (escenario.destinos.length >= limites.maximo || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+    if (escenario.destinos.length >= limites.maximo || !Number.isFinite(x) || !Number.isFinite(y) || ocupado(x, y)) return null;
     const punto = { id: "D" + siguienteId++, x: acotar(x), y: acotar(y) };
     escenario.destinos.push(punto);
     return punto;
   }
   function eliminar(id) {
-    if (escenario.destinos.length <= limites.minimo) return false;
     const indice = escenario.destinos.findIndex(function (punto) { return punto.id === id; });
     if (indice < 0) return false;
     escenario.destinos.splice(indice, 1);
     return true;
   }
   restablecer();
-  return { limites: limites, escenario: escenario, puntos: puntos, mover: mover, agregar: agregar, eliminar: eliminar, restablecer: restablecer };
+  return { limites: limites, escenario: escenario, puntos: puntos, mover: mover, agregar: agregar, eliminar: eliminar, restablecer: restablecer, validar: validar };
 })();

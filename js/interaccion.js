@@ -13,14 +13,14 @@
   const instrucciones = {
     mover: "Arrastra un destino o el almacén para cambiar su posición.",
     agregar: "Toca el interior del plano para agregar un destino. Máximo: 30 destinos.",
-    eliminar: "Toca un destino para eliminarlo. Deben quedar al menos 8; el almacén se conserva."
+    eliminar: "Toca un destino para eliminarlo. Necesitas 8 para ejecutar; el almacén se conserva."
   };
   function mostrarCoordenadas() {
     const punto = datos.puntos().find(function (actual) { return actual.id === selector.value; });
     if (!punto) return;
     campoX.value = punto.x;
     campoY.value = punto.y;
-    document.getElementById("eliminar-seleccion").disabled = punto.id === "A" || datos.escenario.destinos.length <= datos.limites.minimo;
+    document.getElementById("eliminar-seleccion").disabled = punto.id === "A";
   }
   function actualizar(id) {
     const seleccion = id || selector.value;
@@ -34,16 +34,25 @@
     if (datos.puntos().some(function (punto) { return punto.id === seleccion; })) selector.value = seleccion;
     document.getElementById("conteo").textContent = datos.escenario.destinos.length + " destinos";
     document.getElementById("agregar-centro").disabled = datos.escenario.destinos.length >= datos.limites.maximo;
+    const validacion = datos.validar();
+    document.getElementById("validacion-escenario").textContent = validacion.faltantes
+      ? "Faltan " + validacion.faltantes + " destino" + (validacion.faltantes === 1 ? "" : "s") + " para ejecutar. Se requieren entre 8 y 30, sin contar el almacén."
+      : "Escenario válido: " + validacion.cantidad + " destinos. Los algoritmos siguen pendientes.";
+    // El escenario válido es un requisito; la ejecución espera la siguiente etapa.
+    const ejecutar = document.getElementById("ejecutar");
+    ejecutar.disabled = true;
+    ejecutar.title = validacion.valido ? "Algoritmos pendientes de implementar." : "Completa los 8 destinos para ejecutar.";
     mostrarCoordenadas();
     dibujo.dibujar();
   }
   function agregar(x, y) {
     const punto = datos.agregar(x, y);
-    estado.textContent = punto ? "Destino " + punto.id + " agregado." : "Se alcanzó el máximo de 30 destinos.";
+    estado.textContent = punto ? "Destino " + punto.id + " agregado." : datos.escenario.destinos.length >= datos.limites.maximo
+      ? "Se alcanzó el máximo de 30 destinos." : "Ya hay un punto en esas coordenadas. Elige otra posición.";
     actualizar(punto ? punto.id : null);
   }
   function eliminar(id) {
-    estado.textContent = datos.eliminar(id) ? "Destino " + id + " eliminado." : "El almacén se conserva y deben quedar al menos 8 destinos.";
+    estado.textContent = datos.eliminar(id) ? "Destino " + id + " eliminado." : "No se puede eliminar el almacén.";
     actualizar();
   }
   document.querySelectorAll("[data-modo]").forEach(function (boton) {
@@ -54,13 +63,9 @@
       dibujo.canvas.style.cursor = modo === "mover" ? "grab" : "crosshair";
     });
   });
-  function posicionEvento(evento) {
-    const rectangulo = dibujo.canvas.getBoundingClientRect();
-    return { x: evento.clientX - rectangulo.left, y: evento.clientY - rectangulo.top };
-  }
   dibujo.canvas.addEventListener("pointerdown", function (evento) {
     if (!evento.isPrimary || evento.button !== 0 || arrastre) return;
-    const posicion = posicionEvento(evento);
+    const posicion = dibujo.posicionEvento(evento);
     const punto = dibujo.buscarPunto(posicion.x, posicion.y);
     const coordenadas = dibujo.aEscenario(posicion.x, posicion.y);
     if (modo === "agregar") {
@@ -75,15 +80,17 @@
   });
   dibujo.canvas.addEventListener("pointermove", function (evento) {
     if (!arrastre || evento.pointerId !== arrastre.puntero) return;
-    const posicion = posicionEvento(evento);
+    const posicion = dibujo.posicionEvento(evento);
     const coordenadas = dibujo.aEscenario(posicion.x, posicion.y);
-    datos.mover(arrastre.id, coordenadas.x + arrastre.desplazamientoX, coordenadas.y + arrastre.desplazamientoY);
+    arrastre.bloqueado = !datos.mover(arrastre.id, coordenadas.x + arrastre.desplazamientoX, coordenadas.y + arrastre.desplazamientoY);
+    if (arrastre.bloqueado) estado.textContent = "No se pueden superponer puntos. Se conserva la última posición válida.";
     mostrarCoordenadas();
     dibujo.dibujar();
   });
   function terminarArrastre(evento) {
     if (!arrastre || evento.pointerId !== arrastre.puntero) return;
-    estado.textContent = "Posición de " + arrastre.id + " actualizada.";
+    estado.textContent = arrastre.bloqueado ? "No se pueden superponer puntos. Se conserva la última posición válida."
+      : "Posición de " + arrastre.id + " actualizada.";
     arrastre = null;
     if (dibujo.canvas.hasPointerCapture(evento.pointerId)) dibujo.canvas.releasePointerCapture(evento.pointerId);
   }
@@ -96,13 +103,15 @@
       estado.textContent = "Introduce X e Y entre 0 y 100, con hasta un decimal.";
       return;
     }
-    datos.mover(selector.value, Number(campoX.value), Number(campoY.value));
-    estado.textContent = "Coordenadas de " + selector.value + " actualizadas.";
+    const movido = datos.mover(selector.value, Number(campoX.value), Number(campoY.value));
+    estado.textContent = movido ? "Coordenadas de " + selector.value + " actualizadas."
+      : "Ya hay un punto en esas coordenadas. Se conserva la posición anterior.";
     actualizar();
   });
   document.getElementById("agregar-centro").addEventListener("click", function () { agregar(50, 50); });
   document.getElementById("eliminar-seleccion").addEventListener("click", function () { eliminar(selector.value); });
   document.getElementById("restablecer").addEventListener("click", function () {
+    if (arrastre) terminarArrastre({ pointerId: arrastre.puntero });
     datos.restablecer();
     estado.textContent = "Escenario inicial restablecido: un almacén y ocho destinos.";
     actualizar("A");
