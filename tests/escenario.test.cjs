@@ -31,7 +31,8 @@ function iniciar() {
   const contexto = { document: { getElementById: obtener, createElement: () => new Elemento(), querySelectorAll: () => botones }, devicePixelRatio: 1, addEventListener: (n, fn) => eventosVentana[n] = fn };
   contexto.window = contexto;
   vm.createContext(contexto);
-  for (const archivo of ['datos', 'dibujo', 'interaccion']) {
+  obtener('vista-ruta').value = 'ambas';
+  for (const archivo of ['datos', 'rutas', 'dibujo', 'resultados', 'interaccion']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../js', archivo + '.js'), 'utf8'), contexto);
   }
   function evento(x, y, extras = {}) {
@@ -101,7 +102,7 @@ test('Eliminar por interfaz informa faltantes y bloquea ejecución', () => {
   app.modo('agregar');
   app.canvas.emitir('pointerdown', app.evento(10, 10));
   assert.match(app.obtener('validacion-escenario').textContent, /Escenario válido: 8/);
-  assert.equal(app.obtener('ejecutar').disabled, true); // Algoritmos pendientes.
+  assert.equal(app.obtener('ejecutar').disabled, false); // Referencias disponibles con 8 destinos.
 });
 
 for (const pointerType of ['mouse', 'touch']) {
@@ -167,5 +168,50 @@ test('Redimensionar y cambiar DPR preserva coordenadas y todas las distancias', 
       assert.ok(Math.abs(logico.y - p.y) < 1e-9);
       assert.equal(app.dibujo.buscarPunto(pixel.x, pixel.y).id, p.id);
     }
+  }
+});
+
+test('Referencias persisten al consultar y redimensionar; una edición real las invalida', () => {
+  const app = iniciar();
+  app.obtener('ejecutar').emitir('click');
+  const orden = app.obtener('orden-aleatoria').textContent;
+  const distancia = app.obtener('distancia-aleatoria').textContent;
+  assert.match(orden, /^A → D/);
+  assert.ok(Number(distancia) > 0);
+  app.obtener('ejecutar').emitir('click');
+  app.redimensionar(320, 350, 2);
+  assert.equal(app.obtener('orden-aleatoria').textContent, orden);
+  assert.equal(app.obtener('distancia-aleatoria').textContent, distancia);
+  // Intentar superponer no cambia el escenario y conserva las referencias.
+  app.obtener('coordenada-x').value = '19';
+  app.obtener('coordenada-y').value = '76';
+  app.obtener('aplicar').emitir('click');
+  assert.equal(app.obtener('orden-aleatoria').textContent, orden);
+  app.obtener('coordenada-x').value = '51';
+  app.obtener('coordenada-y').value = '49';
+  app.obtener('aplicar').emitir('click');
+  assert.equal(app.obtener('distancia-aleatoria').textContent, '—');
+  assert.equal(app.obtener('distancia-vecino').textContent, '—');
+  assert.match(app.obtener('estado-resultados').textContent, /Recalcula/);
+  app.obtener('ejecutar').emitir('click');
+  assert.ok(Number(app.obtener('distancia-vecino').textContent) > 0);
+});
+
+test('Agregar, eliminar, arrastrar y restaurar invalidan las referencias', () => {
+  for (const accion of ['agregar', 'eliminar', 'arrastrar', 'restaurar']) {
+    const app = iniciar();
+    if (accion === 'restaurar') app.obtener('agregar-centro').emitir('click');
+    app.obtener('ejecutar').emitir('click');
+    if (accion === 'agregar') app.obtener('agregar-centro').emitir('click');
+    if (accion === 'eliminar') { app.modo('eliminar'); app.canvas.emitir('pointerdown', app.evento(19, 76)); }
+    if (accion === 'arrastrar') {
+      app.canvas.emitir('pointerdown', app.evento(19, 76));
+      app.canvas.emitir('pointermove', app.evento(21, 77));
+      app.canvas.emitir('pointerup', app.evento(21, 77));
+    }
+    if (accion === 'restaurar') app.obtener('restablecer').emitir('click');
+    assert.equal(app.obtener('distancia-aleatoria').textContent, '—', accion);
+    assert.equal(app.obtener('distancia-vecino').textContent, '—', accion);
+    assert.equal(app.obtener('vista-ruta').disabled, true, accion);
   }
 });

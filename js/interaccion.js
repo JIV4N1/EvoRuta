@@ -1,6 +1,6 @@
 "use strict";
 
-// Los controles conectan el estado con el dibujo. Aún no se calculan rutas.
+// Los controles conectan la edición con el dibujo y las referencias del escenario.
 (function () {
   const datos = EvoRuta.datos;
   const dibujo = EvoRuta.dibujo;
@@ -37,11 +37,8 @@
     const validacion = datos.validar();
     document.getElementById("validacion-escenario").textContent = validacion.faltantes
       ? "Faltan " + validacion.faltantes + " destino" + (validacion.faltantes === 1 ? "" : "s") + " para ejecutar. Se requieren entre 8 y 30, sin contar el almacén."
-      : "Escenario válido: " + validacion.cantidad + " destinos. Los algoritmos siguen pendientes.";
-    // El escenario válido es un requisito; la ejecución espera la siguiente etapa.
-    const ejecutar = document.getElementById("ejecutar");
-    ejecutar.disabled = true;
-    ejecutar.title = validacion.valido ? "Algoritmos pendientes de implementar." : "Completa los 8 destinos para ejecutar.";
+      : "Escenario válido: " + validacion.cantidad + " destinos. Puedes calcular las dos referencias.";
+    EvoRuta.resultados.actualizar();
     mostrarCoordenadas();
     dibujo.dibujar();
   }
@@ -84,6 +81,7 @@
     const coordenadas = dibujo.aEscenario(posicion.x, posicion.y);
     arrastre.bloqueado = !datos.mover(arrastre.id, coordenadas.x + arrastre.desplazamientoX, coordenadas.y + arrastre.desplazamientoY);
     if (arrastre.bloqueado) estado.textContent = "No se pueden superponer puntos. Se conserva la última posición válida.";
+    EvoRuta.resultados.actualizar();
     mostrarCoordenadas();
     dibujo.dibujar();
   });

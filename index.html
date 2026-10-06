@@ -7,17 +7,19 @@
   <title>EvoRuta · Laboratorio de rutas</title>
   <link rel="stylesheet" href="css/styles.css">
   <script defer src="js/datos.js"></script>
+  <script defer src="js/rutas.js"></script>
   <script defer src="js/dibujo.js"></script>
+  <script defer src="js/resultados.js"></script>
   <script defer src="js/interaccion.js"></script>
 </head>
 <body>
   <header class="cabecera">
     <a class="marca" href="index.html" aria-label="EvoRuta, inicio"><span class="simbolo" aria-hidden="true">E↗</span>EvoRuta</a>
     <span class="subtitulo">Laboratorio de algoritmos evolutivos</span>
-    <span class="insignia">Etapa 01 · Escenario</span>
+    <span class="insignia">Etapa 03 · Referencias</span>
   </header>
   <main>
-    <div class="introduccion"><div><p class="sobrelinea">REPARTO COMUNITARIO</p><h1>Un punto de partida.<br>Muchas rutas posibles.</h1><p>Diseña un escenario para repartir alimentos o apoyos. En las próximas etapas compararemos cómo recorrerlo.</p></div><div class="nota-local"><span aria-hidden="true">◉</span> Funciona sin conexión<br><small>Coordenadas ficticias · Plano euclidiano</small></div></div>
+    <div class="introduccion"><div><p class="sobrelinea">REPARTO COMUNITARIO</p><h1>Un punto de partida.<br>Muchas rutas posibles.</h1><p>Diseña un escenario y compara una ruta aleatoria con el método del vecino más cercano para repartir alimentos o apoyos.</p></div><div class="nota-local"><span aria-hidden="true">◉</span> Funciona sin conexión<br><small>Coordenadas ficticias · Plano euclidiano</small></div></div>
     <div class="espacio-trabajo">
       <section class="panel escenario" aria-labelledby="titulo-escenario">
         <div class="titulo-panel"><div><p class="sobrelinea">01 / DISEÑA</p><h2 id="titulo-escenario">Escenario de reparto</h2></div><span id="conteo" class="contador">8 destinos</span></div>
@@ -28,6 +30,7 @@
           <button type="button" id="restablecer" class="boton-simple">Restaurar escenario de ejemplo</button>
         </div>
         <p id="instruccion" class="ayuda">Arrastra un destino o el almacén para cambiar su posición.</p>
+        <div class="control-rutas"><label>Mostrar recorrido<select id="vista-ruta" disabled><option value="ambas">Ambas referencias</option><option value="aleatoria">Ruta aleatoria</option><option value="vecino">Vecino más cercano</option></select></label><div class="leyenda-rutas"><span><i class="trazo-aleatoria"></i>Aleatoria · discontinua</span><span><i class="trazo-vecino"></i>Vecino · continua</span></div></div>
         <div class="plano"><canvas id="plano" aria-label="Plano del almacén y los ocho destinos. Usa el editor de coordenadas que aparece debajo como alternativa al arrastre." role="img">Plano de reparto. Las posiciones también están disponibles en el editor de coordenadas.</canvas></div>
         <div class="pie-plano"><div class="leyenda"><span><i class="marca-almacen"></i>Almacén</span><span><i class="marca-destino"></i>Destino</span></div><span>0–100 unidades · Misma escala X/Y</span></div>
         <details class="editor"><summary>Editar coordenadas con precisión</summary><div class="campos-editor"><label>Punto<select id="punto"></select></label><label>X<input id="coordenada-x" type="number" min="0" max="100" step="0.1"></label><label>Y<input id="coordenada-y" type="number" min="0" max="100" step="0.1"></label><button type="button" id="aplicar">Aplicar</button><button type="button" id="agregar-centro">Agregar al centro</button><button type="button" id="eliminar-seleccion">Eliminar seleccionado</button></div></details>
@@ -36,10 +39,18 @@
       <aside class="panel parametros" aria-labelledby="titulo-parametros">
         <p class="sobrelinea">02 / CONFIGURA</p><h2 id="titulo-parametros">Algoritmo genético</h2><p class="texto-secundario">Los parámetros se habilitarán al implementar el algoritmo.</p>
         <fieldset disabled><legend>Parámetros · Próximamente</legend><label>Tamaño de población<input type="number" placeholder="Sin configurar"></label><label>Número de generaciones<input type="number" placeholder="Sin configurar"></label><div class="dos-columnas"><label>Cruce (%)<input type="number" placeholder="—"></label><label>Mutación (%)<input type="number" placeholder="—"></label></div><label>Selección<select><option>Pendiente de implementar</option></select></label></fieldset>
-        <p id="validacion-escenario" class="estado" role="status" aria-live="polite"></p><div class="acciones"><button id="ejecutar" aria-describedby="validacion-escenario" type="button" disabled class="principal">Comparar las tres rutas</button><button type="button" disabled>Animar recorrido</button></div><p class="nota">Recorrido previsto: almacén → todos los destinos una sola vez → almacén.</p>
+        <p id="validacion-escenario" class="estado" role="status" aria-live="polite"></p><div class="acciones"><button id="ejecutar" aria-describedby="validacion-escenario" type="button" disabled class="principal">Calcular rutas de referencia</button><button type="button" disabled>Animar recorrido</button></div><p class="nota">Recorrido: almacén → todos los destinos una sola vez → almacén. El cálculo de referencias ya está disponible; el algoritmo genético sigue pendiente.</p>
       </aside>
     </div>
-    <section class="panel resultados" aria-labelledby="titulo-resultados"><div class="titulo-panel"><div><p class="sobrelinea">03 / COMPARA</p><h2 id="titulo-resultados">Tres formas de encontrar una ruta</h2></div><span class="etiqueta">Sin ejecuciones</span></div><div class="tarjetas"><article><span class="numero">01</span><h3>Ruta aleatoria</h3><p>Referencia para la comparación</p><div class="valor">— <small>unidades</small></div><p>Mejora: no aplica (referencia)</p></article><article><span class="numero">02</span><h3>Vecino más cercano</h3><p>El siguiente destino más próximo</p><div class="valor">— <small>unidades</small></div><p>Mejora frente a referencia: —</p></article><article><span class="numero">03</span><h3>Algoritmo genético</h3><p>Una búsqueda a través de generaciones</p><div class="valor">— <small>unidades</small></div><p>Mejora frente a referencia: —</p></article></div><p class="ayuda">Aún no hay rutas calculadas. Las distancias y los porcentajes aparecerán después de una ejecución.</p></section>
+    <section class="panel resultados" aria-labelledby="titulo-resultados">
+      <div class="titulo-panel"><div><p class="sobrelinea">03 / COMPARA</p><h2 id="titulo-resultados">Rutas de referencia</h2></div><span id="etiqueta-resultados" class="etiqueta">Sin resultados vigentes</span></div>
+      <div class="tarjetas">
+        <article><span class="numero">01</span><h3>Ruta aleatoria</h3><p>Referencia fija para el escenario actual</p><div class="valor"><span id="distancia-aleatoria">—</span> <small>unidades</small></div><p id="orden-aleatoria" class="orden-ruta">Recorrido pendiente de calcular.</p></article>
+        <article><span class="numero">02</span><h3>Vecino más cercano</h3><p>El siguiente destino pendiente más próximo</p><div class="valor"><span id="distancia-vecino">—</span> <small>unidades</small></div><p id="orden-vecino" class="orden-ruta">Recorrido pendiente de calcular.</p><p>En empates, se elige el ID menor en orden de texto: D10 antes de D2.</p></article>
+        <article><span class="numero">03</span><h3>Algoritmo genético</h3><p>Una búsqueda a través de generaciones</p><div class="valor">— <small>unidades</small></div><p>Pendiente de implementar. Los porcentajes de comparación se incorporarán en otra etapa.</p></article>
+      </div>
+      <p id="estado-resultados" class="ayuda" role="status" aria-live="polite">Aún no hay rutas calculadas. Usa «Calcular rutas de referencia» para obtener sus distancias y recorridos.</p>
+    </section>
     <div class="inferior"><section class="panel"><p class="sobrelinea">04 / OBSERVA</p><h2>Evolución por generaciones</h2><div class="vacio"><span class="icono-vacio" aria-hidden="true">▥</span><h3>La búsqueda empieza aquí</h3><p>Este espacio mostrará la distancia de las rutas a lo largo de las generaciones.</p><span class="etiqueta">Gráfica pendiente</span></div></section><section class="panel"><p class="sobrelinea">05 / COMPRENDE</p><h2>Cómo evoluciona una ruta</h2><div class="concepto"><span aria-hidden="true">↔</span><div><h3>Cruce</h3><p>Espacio reservado para visualizar la combinación de rutas.</p></div></div><div class="concepto"><span aria-hidden="true">⇄</span><div><h3>Mutación</h3><p>Espacio reservado para visualizar cambios en una ruta.</p></div></div><p class="ayuda">Explicaciones visuales disponibles en una próxima etapa.</p></section></div>
   </main><footer>EvoRuta <span>Proyecto académico · Escenario ficticio, sin datos geográficos reales</span></footer>
 </body>

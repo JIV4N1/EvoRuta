@@ -5,6 +5,28 @@ EvoRuta.dibujo = (function () {
   const canvas = document.getElementById("plano");
   const contexto = canvas.getContext("2d");
   let vista = { escala: 1, izquierda: 0, arriba: 0, ancho: 0, alto: 0 };
+  let rutasVisibles = [];
+
+  function establecerRutas(rutas) { rutasVisibles = rutas; }
+
+  function dibujarRutas() {
+    const escenario = EvoRuta.datos.escenario;
+    const porId = new Map(escenario.destinos.map(function (punto) { return [punto.id, punto]; }));
+    rutasVisibles.forEach(function (resultado) {
+      const puntos = [escenario.almacen].concat(resultado.ruta.map(function (id) { return porId.get(id); }), escenario.almacen);
+      contexto.strokeStyle = resultado.color;
+      contexto.lineWidth = 2;
+      contexto.setLineDash(resultado.guiones);
+      contexto.beginPath();
+      puntos.forEach(function (punto, indice) {
+        const posicion = aPantalla(punto);
+        if (indice === 0) contexto.moveTo(posicion.x, posicion.y);
+        else contexto.lineTo(posicion.x, posicion.y);
+      });
+      contexto.stroke();
+    });
+    contexto.setLineDash([]);
+  }
 
   function aPantalla(punto) {
     return { x: vista.izquierda + punto.x * vista.escala, y: vista.arriba + (100 - punto.y) * vista.escala };
@@ -57,6 +79,7 @@ EvoRuta.dibujo = (function () {
     contexto.textAlign = "left";
     contexto.fillText("X", vista.izquierda + lado + 19, vista.arriba + lado + 18);
     contexto.fillText("Y", vista.izquierda - 20, vista.arriba - 12);
+    dibujarRutas();
     EvoRuta.datos.puntos().forEach(function (punto) {
       const posicion = aPantalla(punto);
       const esAlmacen = punto.id === "A";
@@ -93,5 +116,5 @@ EvoRuta.dibujo = (function () {
     });
     return masCercano;
   }
-  return { canvas: canvas, dibujar: dibujar, aEscenario: aEscenario, posicionEvento: posicionEvento, buscarPunto: buscarPunto };
+  return { canvas: canvas, dibujar: dibujar, aEscenario: aEscenario, posicionEvento: posicionEvento, buscarPunto: buscarPunto, establecerRutas: establecerRutas };
 })();
