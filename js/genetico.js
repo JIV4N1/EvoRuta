@@ -77,7 +77,7 @@ EvoRuta.genetico = (function () {
     return resultado;
   }
 
-  function ejecutar(opciones) {
+  function crearEjecucion(opciones) {
     const { almacen, destinos, referencia, poblacion: tamano = predeterminados.poblacion,
       generaciones = predeterminados.generaciones, probabilidadMutacion = predeterminados.probabilidadMutacion,
       azar = Math.random, alGeneracion } = opciones;
@@ -116,7 +116,13 @@ EvoRuta.genetico = (function () {
       if (alGeneracion) alGeneracion({ generacion: generacion, mejor: copiar(mejor), poblacion: poblacion.map(copiar) });
     }
     registrar(0);
-    for (let generacion = 1; generacion <= generaciones; generacion++) {
+    let generacion = 0;
+    function obtenerEstado() {
+      return { generacion: generacion, terminado: generacion >= generaciones, mejor: copiar(mejor),
+        historial: historial.map(function (dato) { return { ...dato }; }), poblacion: poblacion.map(copiar) };
+    }
+    function avanzar() {
+      if (generacion >= generaciones) return obtenerEstado();
       // Un élite global, sin cruzar ni mutar. El resto son descendientes nuevos.
       const siguiente = [copiar(mejor)];
       while (siguiente.length < tamano) {
@@ -131,9 +137,18 @@ EvoRuta.genetico = (function () {
         }
       }
       poblacion = siguiente;
+      generacion++;
       registrar(generacion);
+      return obtenerEstado();
     }
-    return { mejor: copiar(mejor), historial: historial, poblacion: poblacion.map(copiar) };
+    return { avanzar: avanzar, obtenerEstado: obtenerEstado };
   }
-  return { predeterminados: predeterminados, ejecutar: ejecutar, torneo: torneo, cruceOX: cruceOX, mutarIntercambio: mutarIntercambio };
+  // Se conserva la API síncrona para pruebas y usos independientes de la interfaz.
+  function ejecutar(opciones) {
+    const ejecucion = crearEjecucion(opciones);
+    let estado = ejecucion.obtenerEstado();
+    while (!estado.terminado) estado = ejecucion.avanzar();
+    return { mejor: estado.mejor, historial: estado.historial, poblacion: estado.poblacion };
+  }
+  return { predeterminados: predeterminados, ejecutar: ejecutar, crearEjecucion: crearEjecucion, torneo: torneo, cruceOX: cruceOX, mutarIntercambio: mutarIntercambio };
 })();

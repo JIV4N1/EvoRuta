@@ -1,7 +1,8 @@
 # Motor genético de EvoRuta
 
 Cargar `rutas.js` y después `genetico.js`. Ninguno necesita el DOM. La interfaz
-todavía no ejecuta este motor ni muestra sus resultados.
+usa `crearEjecucion(opciones)`, `obtenerEstado()` y `avanzar()` para procesar una
+generación por turno y permitir pausa, continuación y avance manual.
 
 ```js
 const resultado = EvoRuta.genetico.ejecutar({
@@ -35,8 +36,10 @@ el óptimo. No hay rutas óptimas precalculadas.
 
 Opciones de prueba: `azar` puede ser un generador con semilla que devuelva valores
 en `[0, 1)`; `alGeneracion` recibe copias de `{ generacion, mejor, poblacion }`.
-La ejecución es síncrona. Si se incorporan ejecuciones largas a la interfaz,
-conviene usar un worker o procesamiento por bloques.
+`ejecutar(opciones)` conserva la ejecución síncrona completa. `crearEjecucion`
+evalúa la generación 0; cada llamada a `avanzar()` produce una generación y se
+detiene en el límite configurado. `obtenerEstado()` devuelve copias del estado,
+incluidos `generacion` y `terminado`. La interfaz cede el control entre pasos.
 
 Desde la raíz del proyecto, ejecutar las pruebas sin dependencias:
 

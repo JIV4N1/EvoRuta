@@ -17,6 +17,24 @@ function escenario(n = 8) {
   return { almacen: { id: 'A', x: 50, y: 49 }, destinos, referencia: destinos.map(p => p.id).reverse() };
 }
 
+test('Motor incremental coincide con ejecución completa y respeta fin y copias de estado', () => {
+  const { genetico: g } = motor();
+  const opciones = { ...escenario(30), poblacion: 15, generaciones: 8 };
+  const completo = g.ejecutar({ ...opciones, azar: azarSemilla(42) });
+  const incremental = g.crearEjecucion({ ...opciones, azar: azarSemilla(42) });
+  assert.equal(incremental.obtenerEstado().generacion, 0);
+  for (let i = 1; i <= 8; i++) assert.equal(incremental.avanzar().generacion, i);
+  const final = incremental.obtenerEstado();
+  assert.deepEqual(final.mejor, completo.mejor);
+  assert.deepEqual(final.historial, completo.historial);
+  assert.deepEqual(final.poblacion, completo.poblacion);
+  assert.equal(incremental.avanzar().generacion, 8);
+  final.mejor.ruta[0] = 'NO EXISTE';
+  final.historial[0].distancia = -1;
+  assert.deepEqual(incremental.obtenerEstado().mejor, completo.mejor);
+  assert.deepEqual(incremental.obtenerEstado().historial, completo.historial);
+});
+
 test('OX conserva el segmento y completa circularmente en el orden del otro padre', () => {
   const { genetico: g } = motor();
   const padre = ['1', '2', '3', '4', '5', '6', '7', '8'];

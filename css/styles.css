@@ -12,3 +12,6 @@
 .leyenda-rutas .trazo-aleatoria{border-color:#8650a0;border-top-style:dashed}
 .orden-ruta{overflow-wrap:anywhere;line-height:1.8}
 .acciones .principal:not(:disabled){background:var(--verde);color:white;border-color:var(--verde)}
+.leyenda-rutas .trazo-genetico{height:3px;border:0;background:repeating-linear-gradient(to right,#c15b19 0 10px,transparent 10px 14px,#c15b19 14px 16px,transparent 16px 20px)}
+.contenedor-grafica{height:260px;margin-top:20px;min-width:0}
+#grafica{touch-action:auto}

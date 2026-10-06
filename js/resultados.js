@@ -5,6 +5,7 @@ EvoRuta.resultados = (function () {
   const datos = EvoRuta.datos;
   let firmaAnterior = JSON.stringify(datos.escenario);
   let referencias = null;
+  let mejorGenetico = null;
   const mensaje = document.getElementById("estado-resultados");
   const vista = document.getElementById("vista-ruta");
 
@@ -20,10 +21,13 @@ EvoRuta.resultados = (function () {
     const rutasVisibles = [];
     if (referencias) {
       ["aleatoria", "vecino"].forEach(function (metodo) {
-        if (vista.value === "ambas" || vista.value === metodo) {
+        if (vista.value === "ambas" || vista.value === "todas" || vista.value === metodo) {
           rutasVisibles.push({ ruta: referencias[metodo].ruta, color: metodo === "aleatoria" ? "#8650a0" : "#216ca0", guiones: metodo === "aleatoria" ? [7, 5] : [] });
         }
       });
+    }
+    if (mejorGenetico && (vista.value === "todas" || vista.value === "genetico")) {
+      rutasVisibles.push({ ruta: mejorGenetico.ruta, color: "#c15b19", guiones: [10, 4, 2, 4] });
     }
     EvoRuta.dibujo.establecerRutas(rutasVisibles);
   }
@@ -32,6 +36,8 @@ EvoRuta.resultados = (function () {
     const firma = JSON.stringify(datos.escenario);
     if (firma !== firmaAnterior) {
       referencias = null;
+      mejorGenetico = null;
+      if (EvoRuta.simulacion) EvoRuta.simulacion.reiniciar();
       firmaAnterior = firma;
       mensaje.textContent = "El escenario cambió. Recalcula las rutas de referencia; los resultados anteriores ya no son válidos.";
     }
@@ -41,6 +47,7 @@ EvoRuta.resultados = (function () {
     ejecutar.title = validacion.valido ? "Calcula o consulta las referencias del escenario actual." : "Completa al menos 8 destinos para calcular.";
     ejecutar.textContent = referencias ? "Consultar rutas de referencia" : "Calcular rutas de referencia";
     mostrar();
+    if (EvoRuta.simulacion) EvoRuta.simulacion.actualizarControles();
   }
 
   document.getElementById("ejecutar").addEventListener("click", function () {
@@ -60,5 +67,9 @@ EvoRuta.resultados = (function () {
     EvoRuta.dibujo.dibujar();
   });
   vista.addEventListener("change", function () { actualizar(); EvoRuta.dibujo.dibujar(); });
-  return { actualizar: actualizar };
+  function obtener() {
+    return referencias ? JSON.parse(JSON.stringify(referencias)) : null;
+  }
+  function establecerGenetico(mejor) { mejorGenetico = mejor; mostrar(); }
+  return { actualizar: actualizar, obtener: obtener, establecerGenetico: establecerGenetico };
 })();

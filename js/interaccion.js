@@ -10,6 +10,7 @@
   const estado = document.getElementById("estado");
   let modo = "mover";
   let arrastre = null;
+  function bloqueado() { return EvoRuta.simulacion && EvoRuta.simulacion.bloqueada(); }
   const instrucciones = {
     mover: "Arrastra un destino o el almacén para cambiar su posición.",
     agregar: "Toca el interior del plano para agregar un destino. Máximo: 30 destinos.",
@@ -43,17 +44,20 @@
     dibujo.dibujar();
   }
   function agregar(x, y) {
+    if (bloqueado()) return;
     const punto = datos.agregar(x, y);
     estado.textContent = punto ? "Destino " + punto.id + " agregado." : datos.escenario.destinos.length >= datos.limites.maximo
       ? "Se alcanzó el máximo de 30 destinos." : "Ya hay un punto en esas coordenadas. Elige otra posición.";
     actualizar(punto ? punto.id : null);
   }
   function eliminar(id) {
+    if (bloqueado()) return;
     estado.textContent = datos.eliminar(id) ? "Destino " + id + " eliminado." : "No se puede eliminar el almacén.";
     actualizar();
   }
   document.querySelectorAll("[data-modo]").forEach(function (boton) {
     boton.addEventListener("click", function () {
+      if (bloqueado()) return;
       modo = boton.dataset.modo;
       document.querySelectorAll("[data-modo]").forEach(function (actual) { actual.setAttribute("aria-pressed", String(actual === boton)); });
       document.getElementById("instruccion").textContent = instrucciones[modo];
@@ -61,7 +65,7 @@
     });
   });
   dibujo.canvas.addEventListener("pointerdown", function (evento) {
-    if (!evento.isPrimary || evento.button !== 0 || arrastre) return;
+    if (bloqueado() || !evento.isPrimary || evento.button !== 0 || arrastre) return;
     const posicion = dibujo.posicionEvento(evento);
     const punto = dibujo.buscarPunto(posicion.x, posicion.y);
     const coordenadas = dibujo.aEscenario(posicion.x, posicion.y);
@@ -76,7 +80,7 @@
     }
   });
   dibujo.canvas.addEventListener("pointermove", function (evento) {
-    if (!arrastre || evento.pointerId !== arrastre.puntero) return;
+    if (bloqueado() || !arrastre || evento.pointerId !== arrastre.puntero) return;
     const posicion = dibujo.posicionEvento(evento);
     const coordenadas = dibujo.aEscenario(posicion.x, posicion.y);
     arrastre.bloqueado = !datos.mover(arrastre.id, coordenadas.x + arrastre.desplazamientoX, coordenadas.y + arrastre.desplazamientoY);
@@ -97,6 +101,7 @@
   dibujo.canvas.addEventListener("lostpointercapture", terminarArrastre);
   selector.addEventListener("change", mostrarCoordenadas);
   document.getElementById("aplicar").addEventListener("click", function () {
+    if (bloqueado()) return;
     if (!campoX.value.trim() || !campoY.value.trim() || !campoX.checkValidity() || !campoY.checkValidity()) {
       estado.textContent = "Introduce X e Y entre 0 y 100, con hasta un decimal.";
       return;
@@ -109,6 +114,7 @@
   document.getElementById("agregar-centro").addEventListener("click", function () { agregar(50, 50); });
   document.getElementById("eliminar-seleccion").addEventListener("click", function () { eliminar(selector.value); });
   document.getElementById("restablecer").addEventListener("click", function () {
+    if (bloqueado()) return;
     if (arrastre) terminarArrastre({ pointerId: arrastre.puntero });
     datos.restablecer();
     estado.textContent = "Escenario inicial restablecido: un almacén y ocho destinos.";
