@@ -2,7 +2,7 @@
 
 // Funciones independientes del DOM. Una ruta contiene solo IDs de destinos;
 // el almacén se añade implícitamente al inicio y al final al medirla.
-window.EvoRuta = window.EvoRuta || {};
+globalThis.EvoRuta = globalThis.EvoRuta || {};
 EvoRuta.rutas = (function () {
   function distanciaEuclidiana(origen, destino) {
     return Math.hypot(destino.x - origen.x, destino.y - origen.y);
@@ -12,7 +12,7 @@ EvoRuta.rutas = (function () {
     if (!Array.isArray(ruta) || ruta.length !== destinos.length) return false;
     const esperados = new Set(destinos.map(function (destino) { return destino.id; }));
     return esperados.size === destinos.length && new Set(ruta).size === ruta.length &&
-      ruta.every(function (id) { return esperados.has(id); });
+      Array.from(ruta).every(function (id) { return esperados.has(id); });
   }
 
   function distanciaTotal(ruta, almacen, destinos) {
