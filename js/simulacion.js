@@ -19,12 +19,13 @@ EvoRuta.simulacion = (function () {
     obtener("parametros-geneticos").disabled = bloquear;
   }
   function actualizarControles() {
-    obtener("iniciar").disabled = bloqueada() || !EvoRuta.datos.validar().valido;
+    obtener("iniciar").disabled = bloqueada() || !EvoRuta.datos.validar().valido || !EvoRuta.resultados.obtener() || EvoRuta.servicios.ocupado();
     obtener("pausar").disabled = fase !== "ejecutando";
-    obtener("continuar").disabled = fase !== "pausada";
-    obtener("paso").disabled = fase !== "pausada";
+    obtener("continuar").disabled = fase !== "pausada" || EvoRuta.servicios.ocupado();
+    obtener("paso").disabled = fase !== "pausada" || EvoRuta.servicios.ocupado();
     obtener("reiniciar").disabled = !bloqueada();
-    obtener("repetir").disabled = fase !== "terminada";
+    obtener("repetir").disabled = fase !== "terminada" || EvoRuta.servicios.ocupado();
+    if (EvoRuta.interaccion) EvoRuta.interaccion.controles();
   }
   function porcentaje(referencia, distancia) {
     return referencia === 0 ? null : (referencia - distancia) / referencia * 100;
@@ -37,7 +38,7 @@ EvoRuta.simulacion = (function () {
   }
   function mostrar() {
     obtener("generacion-actual").textContent = estado ? String(estado.generacion) : "—";
-    obtener("distancia-genetico").textContent = estado ? estado.mejor.distancia.toFixed(2) : "—";
+    obtener("distancia-genetico").textContent = estado ? (estado.mejor.distancia / 1000).toFixed(3) : "—";
     obtener("orden-genetico").textContent = estado ? ["A"].concat(estado.mejor.ruta, "A").join(" → ") : "Sin ejecución.";
     const referencias = EvoRuta.resultados.obtener();
     ["aleatoria", "vecino"].forEach(function (metodo) {
@@ -76,18 +77,18 @@ EvoRuta.simulacion = (function () {
     }, 30);
   }
   function iniciar() {
-    if (bloqueada() || !EvoRuta.datos.validar().valido) return;
+    if (bloqueada() || !EvoRuta.datos.validar().valido || !EvoRuta.resultados.obtener() || EvoRuta.servicios.ocupado()) return;
     const campos = [obtener("poblacion"), obtener("generaciones"), obtener("mutacion")];
     if (!campos.every(function (campo) { return campo.reportValidity(); })) return;
     try {
       // Consultar referencias nunca vuelve a sortearlas si el escenario no cambió.
-      obtener("ejecutar").click();
+      // Las referencias y la matriz ya están listas antes de habilitar Iniciar.
       const escenario = EvoRuta.datos.escenario;
       parametrosEjecucion = { poblacion: Number(campos[0].value), generaciones: Number(campos[1].value),
         probabilidadMutacion: Number(campos[2].value) / 100 };
       registrada = false;
       ejecucion = EvoRuta.genetico.crearEjecucion({ almacen: escenario.almacen, destinos: escenario.destinos,
-        referencia: EvoRuta.resultados.obtener().aleatoria.ruta, ...parametrosEjecucion });
+        matriz: EvoRuta.resultados.matriz(), referencia: EvoRuta.resultados.obtener().aleatoria.ruta, ...parametrosEjecucion });
       estado = ejecucion.obtenerEstado();
       fase = estado.terminado ? "terminada" : "ejecutando";
       bloquearEdicion(true);
@@ -111,11 +112,11 @@ EvoRuta.simulacion = (function () {
     cancelarTemporizador(); fase = "pausada"; mensaje.textContent = "En pausa. La edición permanece bloqueada; continúa, avanza una generación o reinicia."; actualizarControles();
   });
   obtener("continuar").addEventListener("click", function () {
-    if (fase !== "pausada") return;
+    if (fase !== "pausada" || EvoRuta.servicios.ocupado()) return;
     fase = "ejecutando"; mensaje.textContent = "Evolución en curso."; actualizarControles(); programar();
   });
   obtener("paso").addEventListener("click", function () {
-    if (fase !== "pausada") return;
+    if (fase !== "pausada" || EvoRuta.servicios.ocupado()) return;
     try { avanzar(); } catch (error) { fase = "error"; mensaje.textContent = error.message + " Reinicia la ejecución."; actualizarControles(); }
   });
   obtener("reiniciar").addEventListener("click", reiniciar);

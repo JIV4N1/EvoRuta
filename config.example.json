@@ -1,0 +1,10 @@
+{
+  "puerto": 8080,
+  "osrm": "https://router.project-osrm.org",
+  "photon": "https://photon.komoot.io",
+  "tiles": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  "atribucion": "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors · Rutas: <a href=\"https://project-osrm.org\">OSRM</a>",
+  "userAgent": "EvoRuta-Academic/2.0 (local educational route planner)",
+  "intervaloMs": 1100,
+  "radioMetros": 150
+}

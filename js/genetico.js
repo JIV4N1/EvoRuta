@@ -80,7 +80,7 @@ EvoRuta.genetico = (function () {
   }
 
   function crearEjecucion(opciones) {
-    const { almacen, destinos, referencia, poblacion: tamano = predeterminados.poblacion,
+    const { almacen, destinos, referencia, matriz, poblacion: tamano = predeterminados.poblacion,
       generaciones = predeterminados.generaciones, probabilidadMutacion = predeterminados.probabilidadMutacion,
       azar = Math.random, alGeneracion } = opciones;
     if (!Number.isInteger(tamano) || tamano < 3 || !Number.isInteger(generaciones) || generaciones < 0 ||
@@ -90,11 +90,11 @@ EvoRuta.genetico = (function () {
     if (typeof azar !== "function" || (alGeneracion !== undefined && typeof alGeneracion !== "function")) {
       throw new Error("Azar y alGeneracion deben ser funciones.");
     }
-    if (!almacen || !Number.isFinite(almacen.x) || !Number.isFinite(almacen.y) ||
+    if (!almacen || !Number.isFinite(almacen.lat) || !Number.isFinite(almacen.lng) ||
         !Array.isArray(destinos) || destinos.length < 8 || destinos.length > 30 ||
         !Array.from(destinos).every(function (p) {
           return p && typeof p.id === "string" && p.id.length > 0 && p.id !== (almacen.id || "A") &&
-            Number.isFinite(p.x) && Number.isFinite(p.y);
+            Number.isFinite(p.lat) && Number.isFinite(p.lng);
         }) || !rutas.validarRuta(referencia, destinos)) {
       throw new Error("Se requieren un almacén, 8–30 destinos válidos y su ruta aleatoria de referencia completa.");
     }
@@ -102,7 +102,7 @@ EvoRuta.genetico = (function () {
     const origen = { ...almacen };
     const puntos = destinos.map(function (p) { return { ...p }; });
     function evaluar(ruta) {
-      const distancia = rutas.distanciaTotal(ruta, origen, puntos);
+      const distancia = rutas.distanciaTotal(ruta, origen, puntos, matriz);
       if (!Number.isFinite(distancia)) throw new Error("La distancia debe ser finita.");
       return { ruta: ruta.slice(), distancia: distancia };
     }

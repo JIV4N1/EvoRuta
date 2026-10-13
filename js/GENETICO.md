@@ -1,6 +1,6 @@
 # Motor genético de EvoRuta
 
-Cargar `rutas.js` y después `genetico.js`. Ninguno necesita el DOM. La interfaz
+Cargar `matriz.js`, `rutas.js` y después `genetico.js`. Ninguno necesita el DOM. La interfaz
 usa `crearEjecucion(opciones)`, `obtenerEstado()` y `avanzar()` para procesar una
 generación por turno y permitir pausa, continuación y avance manual.
 
@@ -9,6 +9,7 @@ const resultado = EvoRuta.genetico.ejecutar({
   almacen: escenario.almacen,
   destinos: escenario.destinos,
   referencia: rutaAleatoriaDeReferencia,
+  matriz: matrizVialVigente,
   poblacion: 60,
   generaciones: 150,
   probabilidadMutacion: 0.15
@@ -19,6 +20,11 @@ const resultado = EvoRuta.genetico.ejecutar({
 ```
 
 Cada ruta excluye el almacén: la evaluación añade los tramos de salida y regreso.
+La matriz se crea con `EvoRuta.matrices.crear([almacen, ...destinos], distancias)`;
+los puntos usan `id`, `lat`, `lng`. Cada fila contiene metros dirigidos desde su
+punto de origen. Se valida y congela antes de iniciar; no hay distancia alternativa
+euclidiana. El motor no consulta servicios externos. Todas las distancias del
+motor permanecen en metros; la interfaz las convierte a kilómetros.
 La referencia aleatoria se copia como primer individuo y los restantes se generan
 con Fisher–Yates. No se consulta ni se inyecta la ruta del vecino más cercano.
 

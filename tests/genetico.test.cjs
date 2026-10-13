@@ -6,16 +6,13 @@ const vm = require('node:vm');
 
 function motor() {
   const contexto = vm.createContext({}); // Sin window ni document.
-  for (const nombre of ['rutas', 'genetico']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../js', nombre + '.js'), 'utf8'), contexto);
+  for (const nombre of ['matriz', 'rutas', 'genetico']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../js', nombre + '.js'), 'utf8'), contexto);
   return contexto.EvoRuta;
 }
 function azarSemilla(semilla) {
   return () => ((semilla = (Math.imul(semilla, 1664525) + 1013904223) >>> 0) / 4294967296);
 }
-function escenario(n = 8) {
-  const destinos = Array.from({ length: n }, (_, i) => ({ id: 'D' + (i * 2 + 1), x: (i * 17) % 101, y: (i * 29) % 101 }));
-  return { almacen: { id: 'A', x: 50, y: 49 }, destinos, referencia: destinos.map(p => p.id).reverse() };
-}
+const { escenario } = require('./ayudas.cjs');
 
 test('Motor incremental coincide con ejecución completa y respeta fin y copias de estado', () => {
   const { genetico: g } = motor();
@@ -111,7 +108,7 @@ test('Elitismo, tamaño constante y mejor global no creciente en cada generació
         assert.equal(poblacion.length, tamano);
         for (const individuo of poblacion) {
           assert.equal(r.validarRuta(individuo.ruta, entrada.destinos), true);
-          assert.equal(individuo.distancia, r.distanciaTotal(individuo.ruta, entrada.almacen, entrada.destinos));
+          assert.equal(individuo.distancia, r.distanciaTotal(individuo.ruta, entrada.almacen, entrada.destinos, entrada.matriz));
         }
         if (elite) assert.ok(poblacion.some(p => JSON.stringify(p.ruta) === elite));
         assert.ok(mejor.distancia <= anterior);

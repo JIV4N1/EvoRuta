@@ -4,9 +4,6 @@
 // el almacén se añade implícitamente al inicio y al final al medirla.
 globalThis.EvoRuta = globalThis.EvoRuta || {};
 EvoRuta.rutas = (function () {
-  function distanciaEuclidiana(origen, destino) {
-    return Math.hypot(destino.x - origen.x, destino.y - origen.y);
-  }
 
   function validarRuta(ruta, destinos) {
     if (!Array.isArray(ruta) || ruta.length !== destinos.length) return false;
@@ -15,19 +12,12 @@ EvoRuta.rutas = (function () {
       Array.from(ruta).every(function (id) { return esperados.has(id); });
   }
 
-  function distanciaTotal(ruta, almacen, destinos) {
-    if (!validarRuta(ruta, destinos)) throw new Error("La ruta debe visitar cada destino exactamente una vez.");
-    const porId = new Map(destinos.map(function (destino) { return [destino.id, destino]; }));
-    let anterior = almacen;
-    let total = 0;
-    ruta.forEach(function (id) {
-      const siguiente = porId.get(id);
-      total += distanciaEuclidiana(anterior, siguiente);
-      anterior = siguiente;
-    });
-    return total + distanciaEuclidiana(anterior, almacen);
+  function distanciaTotal(ruta, almacen, destinos, matriz) {
+    if (!validarRuta(ruta, destinos)) throw new Error("Ruta inválida: debe visitar todos los destinos una sola vez.");
+    if (!matriz || !matriz.corresponde([almacen].concat(destinos))) throw new Error("Se requiere la matriz vial vigente.");
+    const orden = [almacen.id].concat(ruta, almacen.id);
+    return orden.slice(1).reduce((suma, id, i) => suma + matriz.distancia(orden[i], id), 0);
   }
-
   function aleatoria(destinos, azar = Math.random) {
     const ruta = destinos.map(function (destino) { return destino.id; });
     // Fisher–Yates mezcla una copia; nunca altera el orden de los datos originales.
@@ -40,15 +30,16 @@ EvoRuta.rutas = (function () {
     return ruta;
   }
 
-  function vecinoMasCercano(almacen, destinos) {
+  function vecinoMasCercano(almacen, destinos, matriz) {
+    if (!matriz || !matriz.corresponde([almacen].concat(destinos))) throw new Error("Se requiere la matriz vial vigente.");
     const pendientes = destinos.slice();
     const ruta = [];
     let actual = almacen;
     while (pendientes.length) {
       let elegido = 0;
-      let menorDistancia = distanciaEuclidiana(actual, pendientes[0]);
+      let menorDistancia = matriz.distancia(actual.id, pendientes[0].id);
       for (let indice = 1; indice < pendientes.length; indice++) {
-        const distancia = distanciaEuclidiana(actual, pendientes[indice]);
+        const distancia = matriz.distancia(actual.id, pendientes[indice].id);
         // En distancias iguales gana el ID menor en orden de texto (D10 antes de D2).
         // El criterio no depende del orden del arreglo ni de la configuración regional.
         if (distancia < menorDistancia || (distancia === menorDistancia && pendientes[indice].id < pendientes[elegido].id)) {
@@ -61,6 +52,6 @@ EvoRuta.rutas = (function () {
     }
     return ruta;
   }
-  return { distanciaEuclidiana: distanciaEuclidiana, validarRuta: validarRuta,
+  return { validarRuta: validarRuta,
     distanciaTotal: distanciaTotal, aleatoria: aleatoria, vecinoMasCercano: vecinoMasCercano };
 })();

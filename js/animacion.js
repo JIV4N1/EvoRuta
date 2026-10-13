@@ -1,63 +1,45 @@
 "use strict";
-
 EvoRuta.animacion = (function () {
-  const selector = document.getElementById("ruta-animacion");
-  const reproducir = document.getElementById("reproducir-ruta");
-  const parar = document.getElementById("detener-ruta");
-  const mensaje = document.getElementById("estado-animacion");
-  let frame = null, inicio = null, puntos = null;
-  const duracionTramo = 650;
+  const el=id=>document.getElementById(id);
+  let frame=null, inicio=null, geometriaActual=null;
   function actualizar() {
-    reproducir.disabled = puntos !== null || !EvoRuta.resultados.obtenerRuta(selector.value);
-    parar.disabled = puntos === null;
+    el("reproducir-ruta").disabled=!EvoRuta.resultados.geometria(el("ruta-animacion").value) || EvoRuta.servicios.ocupado() || frame!==null;
+    el("detener-ruta").disabled=frame===null;
   }
-  function detener(redibujar = true) {
-    if (frame !== null) cancelAnimationFrame(frame);
-    frame = null; inicio = null; puntos = null;
-    EvoRuta.dibujo.establecerRecorrido(null);
-    mensaje.textContent = "Recorrido detenido. Los resultados se conservan.";
-    actualizar(); if (redibujar) EvoRuta.dibujo.dibujar();
+  function detener(mensaje=true) {
+    if(frame!==null) cancelAnimationFrame(frame);
+    frame=null; inicio=null; geometriaActual=null; EvoRuta.dibujo.colocarVehiculo(null);
+    if(mensaje) el("estado-animacion").textContent="Animación detenida. Los resultados se conservan.";
+    actualizar();
   }
-  function avanzar(tiempo) {
-    frame = null;
-    if (!puntos) return;
-    if (inicio === null) inicio = tiempo;
-    const progreso = Math.min((tiempo - inicio) / duracionTramo, puntos.length - 1);
-    const tramo = Math.min(Math.floor(progreso), puntos.length - 2);
-    const fraccion = progreso - tramo;
-    const a = puntos[tramo], b = puntos[tramo + 1];
-    // El eje Y del Canvas está invertido respecto al plano lógico.
-    const angulo = Math.atan2(-(b.y - a.y), b.x - a.x);
-    EvoRuta.dibujo.establecerRecorrido({ puntos: puntos, angulo: angulo, posicion: {
-      x: a.x + (b.x - a.x) * fraccion, y: a.y + (b.y - a.y) * fraccion } });
-    EvoRuta.dibujo.dibujar();
-    if (progreso === puntos.length - 1) {
-      puntos = null; inicio = null;
-      EvoRuta.dibujo.establecerRecorrido(null);
-      EvoRuta.dibujo.dibujar();
-      mensaje.textContent = "Recorrido completo: todos los destinos visitados y regreso al almacén.";
-      actualizar();
-    } else {
-      const texto = "Recorriendo " + a.id + " → " + b.id + ".";
-      if (mensaje.textContent !== texto) mensaje.textContent = texto;
-      frame = requestAnimationFrame(avanzar);
+  function reproducir() {
+    const g=EvoRuta.resultados.geometria(el("ruta-animacion").value);
+    if(!g || EvoRuta.servicios.ocupado()) return;
+    detener(false); geometriaActual=g;
+    const coordenadas=g.coordenadas, acumulada=[0];
+    for(let i=1;i<coordenadas.length;i++) {
+      // Distancia geodésica solo para velocidad visual; la evaluación usa la matriz.
+      const a=coordenadas[i-1], b=coordenadas[i];
+      acumulada.push(acumulada[i-1]+EvoRuta.dibujo.mapa.distance([a[1],a[0]],[b[1],b[0]]));
     }
+    const total=acumulada.at(-1), duracion=16000; // No representa tiempo de entrega.
+    let segmento=1;
+    function avanzar(t) {
+      if(geometriaActual!==g) return;
+      if(inicio===null) inicio=t;
+      const fraccion=Math.min(1,(t-inicio)/duracion), distancia=fraccion*total;
+      while(segmento<coordenadas.length-1 && acumulada[segmento]<distancia) segmento++;
+      const a=coordenadas[segmento-1],b=coordenadas[segmento];
+      const largo=acumulada[segmento]-acumulada[segmento-1];
+      const proporcion=largo?(distancia-acumulada[segmento-1])/largo:1;
+      EvoRuta.dibujo.colocarVehiculo([a[0]+(b[0]-a[0])*proporcion,a[1]+(b[1]-a[1])*proporcion]);
+      if(fraccion===1) {detener(false); el("estado-animacion").textContent="Recorrido terminado: regreso al almacén. Animación ilustrativa, sin tiempos reales."; return;}
+      frame=requestAnimationFrame(avanzar);
+    }
+    frame=requestAnimationFrame(avanzar); actualizar();
+    el("estado-animacion").textContent="El vehículo sigue la geometría vial. Reproducción ilustrativa de 16 segundos.";
   }
-  reproducir.addEventListener("click", function () {
-    if (puntos) return;
-    const ruta = EvoRuta.resultados.obtenerRuta(selector.value);
-    const escenario = EvoRuta.datos.escenario;
-    if (!ruta || !EvoRuta.rutas.validarRuta(ruta.ruta, escenario.destinos)) return;
-    // Fotografía del recorrido: una mejora posterior no cambia la ruta en marcha.
-    const porId = new Map(escenario.destinos.map(function (p) { return [p.id, p]; }));
-    puntos = [escenario.almacen].concat(ruta.ruta.map(function (id) { return porId.get(id); }), escenario.almacen)
-      .map(function (p) { return { ...p }; });
-    inicio = null;
-    mensaje.textContent = "Reproduciendo una copia de la ruta seleccionada al pulsar reproducir.";
-    actualizar(); frame = requestAnimationFrame(avanzar);
-  });
-  parar.addEventListener("click", function () { detener(); });
-  selector.addEventListener("change", function () { detener(); });
-  actualizar();
-  return { actualizar: actualizar, detener: detener };
+  el("reproducir-ruta").addEventListener("click",reproducir);
+  el("detener-ruta").addEventListener("click",()=>detener());
+  return {actualizar,detener};
 })();

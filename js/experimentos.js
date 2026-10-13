@@ -16,7 +16,7 @@ EvoRuta.experimentos = (function () {
       const fila = document.createElement("tr");
       const parametros = registro.parametros;
       const valores = [registro.numero, parametros.poblacion, parametros.generaciones,
-        (parametros.probabilidadMutacion * 100).toFixed(1) + "%", registro.distancia.toFixed(2),
+        (parametros.probabilidadMutacion * 100).toFixed(1) + "%", (registro.distancia / 1000).toFixed(3),
         formatoMejora(registro.mejoraAleatoria), formatoMejora(registro.mejoraVecino)];
       valores.forEach(function (valor, indice) {
         const celda = document.createElement(indice === 0 ? "th" : "td");
@@ -28,8 +28,8 @@ EvoRuta.experimentos = (function () {
     });
     const estadisticas = resumen();
     document.getElementById("cantidad-ejecuciones").textContent = String(estadisticas.cantidad);
-    document.getElementById("mejor-experimentos").textContent = estadisticas.mejor === null ? "—" : estadisticas.mejor.toFixed(2);
-    document.getElementById("promedio-experimentos").textContent = estadisticas.promedio === null ? "—" : estadisticas.promedio.toFixed(2);
+    document.getElementById("mejor-experimentos").textContent = estadisticas.mejor === null ? "—" : (estadisticas.mejor / 1000).toFixed(3);
+    document.getElementById("promedio-experimentos").textContent = estadisticas.promedio === null ? "—" : (estadisticas.promedio / 1000).toFixed(3);
     document.getElementById("historial-vacio").hidden = registros.length > 0;
   }
   function formatoMejora(valor) {

@@ -1,130 +1,96 @@
-// Verificación opcional: recibe la ruta de una instalación existente de Playwright.
-// EvoRuta no necesita esta herramienta para funcionar ni se instala nada aquí.
-const { chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright');
-const assert = require('node:assert/strict');
-const { pathToFileURL } = require('node:url');
-const path = require('node:path');
-
-(async function () {
-  const browser = await chromium.launch({ headless: true });
-  try {
-    const context = await browser.newContext({ offline: true });
-    const page = await context.newPage();
-    const errores = [], externos = [];
-    page.on('pageerror', error => errores.push(error.message));
-    page.on('console', mensaje => { if (mensaje.type() === 'error') errores.push(mensaje.text()); });
-    page.on('request', solicitud => { if (/^https?:/.test(solicitud.url())) externos.push(solicitud.url()); });
-    await page.goto(pathToFileURL(path.join(__dirname, '../index.html')).href);
-    // Reloj controlado: prueba determinista de pausa y temporizadores duplicados.
-    await page.clock.install();
-    await page.clock.pauseAt(new Date());
-    await page.locator('#generaciones').fill('5');
-    await page.locator('#poblacion').fill('12');
-    await page.locator('#ejecutar').click();
-    const referencias = await page.evaluate(() => EvoRuta.resultados.obtener());
-    const escenario = await page.evaluate(() => JSON.stringify(EvoRuta.datos.escenario));
-    await page.evaluate(() => {
-      window.historialObservado = [];
-      const actualizar = EvoRuta.grafica.actualizar;
-      EvoRuta.grafica.actualizar = function (historial) {
-        window.historialObservado = JSON.parse(JSON.stringify(historial));
-        actualizar(historial);
-      };
-      document.getElementById('iniciar').click();
-      document.getElementById('iniciar').click();
-      document.getElementById('pausar').click();
-    });
-    assert.equal(await page.locator('#generacion-actual').textContent(), '0');
-    assert.equal(await page.locator('#poblacion').isDisabled(), true);
-    assert.equal(await page.locator('#restablecer').isDisabled(), true);
-    await page.evaluate(() => {
-      const canvas = document.getElementById('plano');
-      const rect = canvas.getBoundingClientRect();
-      const lado = Math.min(rect.width - 76, rect.height - 62);
-      const x = rect.left + (rect.width - lado) / 2 + 19 * lado / 100;
-      const y = rect.top + (rect.height - lado) / 2 - 5 + 24 * lado / 100;
-      canvas.dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, isPrimary: true, button: 0, pointerId: 1 }));
-      canvas.dispatchEvent(new PointerEvent('pointermove', { clientX: x + 30, clientY: y + 20, isPrimary: true, pointerId: 1 }));
-      document.getElementById('agregar-centro').dispatchEvent(new Event('click'));
-      document.getElementById('restablecer').dispatchEvent(new Event('click'));
-    });
-    assert.equal(await page.evaluate(() => JSON.stringify(EvoRuta.datos.escenario)), escenario);
-    await page.clock.runFor(300);
-    assert.equal(await page.locator('#generacion-actual').textContent(), '0');
-    await page.locator('#paso').click();
-    assert.equal(await page.locator('#generacion-actual').textContent(), '1');
-    await page.clock.runFor(300);
-    assert.equal(await page.locator('#generacion-actual').textContent(), '1');
-    await page.evaluate(() => {
-      document.getElementById('continuar').click();
-      document.getElementById('continuar').click();
-    });
-    await page.clock.runFor(31);
-    assert.equal(await page.locator('#generacion-actual').textContent(), '2');
-    await page.clock.runFor(400);
-    assert.equal(await page.locator('#generacion-actual').textContent(), '5');
-    assert.equal(await page.locator('#paso').isDisabled(), true);
-    assert.equal(await page.locator('#continuar').isDisabled(), true);
-    const datos = await page.evaluate(() => {
-      const ruta = document.getElementById('orden-genetico').textContent.split(' → ').slice(1, -1);
-      return { historial: historialObservado, distancia: EvoRuta.rutas.distanciaTotal(ruta, EvoRuta.datos.escenario.almacen, EvoRuta.datos.escenario.destinos),
-        porcentajeNegativo: EvoRuta.simulacion.describirMejora(100, 125),
-        cero: EvoRuta.simulacion.describirMejora(0, 0) };
-    });
-    assert.equal(datos.historial.length, 6);
-    assert.equal(datos.historial.at(-1).distancia, datos.distancia);
-    assert.equal(await page.locator('#distancia-genetico').textContent(), datos.distancia.toFixed(2));
-    for (let i = 1; i < datos.historial.length; i++) assert.ok(datos.historial[i].distancia <= datos.historial[i - 1].distancia);
-    assert.match(datos.porcentajeNegativo, /-25.00%.*más larga/);
-    assert.match(datos.cero, /No calculable/);
-    for (const metodo of ['aleatoria', 'vecino']) {
-      const mejora = ((referencias[metodo].distancia - datos.distancia) / referencias[metodo].distancia * 100).toFixed(2);
-      assert.ok((await page.locator('#mejora-' + metodo).textContent()).includes(mejora + '%'));
-    }
-    for (const width of [1366, 390, 320]) {
-      await page.setViewportSize({ width, height: 900 });
-      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-      assert.equal(await page.locator('#distancia-genetico').textContent(), datos.distancia.toFixed(2));
-    }
-    if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: path.join(process.env.SCREENSHOT_DIR, 'simulacion-mobile.png'), fullPage: true });
-    await page.setViewportSize({ width: 1366, height: 1000 });
-    if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: path.join(process.env.SCREENSHOT_DIR, 'simulacion-desktop.png'), fullPage: true });
-    await page.locator('#reiniciar').click();
-    assert.equal(await page.locator('#distancia-genetico').textContent(), '—');
-    assert.equal(await page.locator('#poblacion').isDisabled(), false);
-    assert.deepEqual(await page.evaluate(() => historialObservado), []);
-    assert.deepEqual(await page.evaluate(() => EvoRuta.resultados.obtener()), referencias);
-    assert.equal(await page.evaluate(() => JSON.stringify(EvoRuta.datos.escenario)), escenario);
-    // Reiniciar mientras corre cancela el callback pendiente.
-    await page.evaluate(() => { document.getElementById('iniciar').click(); document.getElementById('reiniciar').click(); });
-    await page.clock.runFor(500);
-    assert.equal(await page.locator('#generacion-actual').textContent(), '—');
-    await page.locator('#generaciones').fill('0');
-    await page.locator('#iniciar').click();
-    assert.equal(await page.locator('#generacion-actual').textContent(), '0');
-    assert.equal(await page.locator('#pausar').isDisabled(), true);
-    assert.equal(await page.evaluate(() => historialObservado.length), 1);
-    await page.locator('#reiniciar').click();
-    // Una edición posterior limpia las tres métricas.
-    await page.locator('summary').click();
-    await page.locator('#coordenada-x').fill('51');
-    await page.locator('#aplicar').click();
-    assert.equal(await page.locator('#distancia-aleatoria').textContent(), '—');
-    assert.equal(await page.locator('#distancia-genetico').textContent(), '—');
-    // También se comprueba la integración con el máximo de destinos y población.
-    await page.evaluate(() => {
-      for (let i = 0; i < 22; i++) EvoRuta.datos.agregar(i, 0);
-      EvoRuta.resultados.actualizar();
-    });
-    await page.locator('#generaciones').fill('2');
-    await page.locator('#poblacion').fill('300');
-    await page.locator('#iniciar').click();
-    await page.clock.runFor(200);
-    assert.equal(await page.locator('#generacion-actual').textContent(), '2');
-    assert.equal((await page.locator('#orden-genetico').textContent()).split(' → ').length, 32);
-    assert.equal(await page.evaluate(() => historialObservado.length), 3);
-    assert.deepEqual(errores, []);
-    assert.deepEqual(externos, []);
-    console.log('PASS: controles, generación 0, pausa, paso, continuación sin duplicados, fin exacto, reinicio, métricas e historial, negativos, file:// offline y diseño adaptable.');
-  } finally { await browser.close(); }
-})().catch(error => { console.error(error); process.exitCode = 1; });
+// Navegador real, servicios SIMULADOS. No descarga mosaicos ni consulta proveedores.
+const {chromium}=require(process.env.PLAYWRIGHT_PATH || "playwright");
+const assert=require("node:assert/strict");
+const {crearServidor}=require("../servidor.cjs");
+(async()=>{
+ const servidor=crearServidor(); await new Promise(r=>servidor.listen(0,"127.0.0.1",r));
+ const base="http://127.0.0.1:"+servidor.address().port;
+ const browser=await chromium.launch({headless:true});
+ try {
+  const page=await browser.newPage({viewport:{width:1400,height:1000}});
+  const errores=[]; page.on("pageerror",e=>errores.push(e.message));
+  await page.route("https://**/*",r=>r.fulfill({status:200,contentType:"image/png",body:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII=","base64")}));
+  let matrices=0,geometrias=0,busquedas=0,fallar=false;
+  const valor=(i,j)=>i===j?0:100+((i*43+j*79)%211);
+  await page.route("**/api/matriz",async r=>{
+   matrices++; const datos=r.request().postDataJSON(),n=datos.puntos.length;
+   if(fallar) return r.fulfill({status:502,json:{error:"Error de red simulado"}});
+   await r.fulfill({json:{distancias:Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>valor(i,j))),ajusteMaximo:2}});
+  });
+  await page.route("**/api/ruta",async r=>{
+   geometrias++; const {puntos}=r.request().postDataJSON();
+   const todos=await page.evaluate(()=>EvoRuta.datos.puntos());
+   const indices=puntos.map(p=>todos.findIndex(t=>t.id===p.id));
+   const tramos=indices.slice(1).map((j,i)=>valor(indices[i],j));
+   await r.fulfill({json:{coordenadas:puntos.map(p=>[p.lng,p.lat]),tramos,distancia:tramos.reduce((a,b)=>a+b,0)}});
+  });
+  await page.route("**/api/buscar",r=>{busquedas++;return r.fulfill({json:[{lat:18.4701,lng:-97.4001,nombre:"Lugar simulado para pruebas"}]});});
+  await page.goto(base); await page.waitForFunction(()=>Boolean(window.EvoRuta?.interaccion));
+  assert.deepEqual(errores,[]);
+  await page.locator("#consulta").fill("Lugar de prueba"); assert.equal(busquedas,0);
+  await page.locator("#busqueda button").click(); await page.waitForFunction(()=>document.querySelector("#resultados-busqueda button"));
+  await page.locator("#resultados-busqueda button").click();
+  assert.equal(await page.locator("#conteo").textContent(),"9 destinos");
+  await page.locator("#restablecer").click();
+  for(const n of [8,30]) {
+   if(n===30) await page.evaluate(()=>{for(let i=0;i<22;i++) EvoRuta.datos.agregar(18.47+i*.0001,-97.4);EvoRuta.interaccion.actualizar();});
+   await page.locator("#ejecutar").click(); await page.waitForFunction(()=>Boolean(EvoRuta.resultados.obtener()));
+   const refs=await page.evaluate(()=>EvoRuta.resultados.obtener());
+   const peticiones=matrices;
+   await page.locator("#generaciones").fill("5"); await page.locator("#poblacion").fill("12");
+   await page.clock.install(); await page.clock.pauseAt(new Date());
+   await page.evaluate(()=>{document.getElementById("iniciar").click();document.getElementById("iniciar").click();document.getElementById("pausar").click();});
+   assert.equal(await page.locator("#generacion-actual").textContent(),"0");
+   for(const id of ["consulta","poblacion","restablecer","coordenada-x"]) assert.equal(await page.locator("#"+id).isDisabled(),true);
+   const antes=await page.evaluate(()=>EvoRuta.datos.firma());
+   await page.evaluate(()=>EvoRuta.interaccion.clic(18,-97));
+   assert.equal(await page.evaluate(()=>EvoRuta.datos.firma()),antes);
+   await page.clock.runFor(300); assert.equal(await page.locator("#generacion-actual").textContent(),"0");
+   await page.locator("#paso").click(); assert.equal(await page.locator("#generacion-actual").textContent(),"1");
+   await page.evaluate(()=>{document.getElementById("continuar").click();document.getElementById("continuar").click();});
+   await page.clock.runFor(31); assert.equal(await page.locator("#generacion-actual").textContent(),"2");
+   await page.clock.runFor(400); assert.equal(await page.locator("#generacion-actual").textContent(),"5");
+   assert.equal(matrices,peticiones); assert.equal(geometrias,0);
+   const medida=await page.evaluate(()=>{
+    const e=EvoRuta.datos.escenario,r=EvoRuta.resultados.obtenerRuta("genetico");
+    return {guardada:r.distancia,calculada:EvoRuta.rutas.distanciaTotal(r.ruta,e.almacen,e.destinos,EvoRuta.resultados.matriz()),negativa:EvoRuta.simulacion.describirMejora(100,125),registro:EvoRuta.experimentos.obtener()[0].distancia};
+   });
+   assert.equal(medida.guardada,medida.calculada); assert.equal(medida.registro,medida.calculada); assert.match(medida.negativa,/-25.00%.*más larga/);
+   await page.locator("#repetir").click(); await page.clock.runFor(400);
+   assert.equal(await page.locator("#cantidad-ejecuciones").textContent(),"2");
+   assert.deepEqual(await page.evaluate(()=>EvoRuta.resultados.obtener()),refs);
+   await page.locator("#reiniciar").click(); assert.deepEqual(await page.evaluate(()=>EvoRuta.resultados.obtener()),refs);
+   await page.clock.resume();
+   if(n===30) break;
+   await page.locator("#restablecer").click(); // Mismo escenario: conserva referencias e historial.
+  }
+  await page.locator("#ruta-animacion").selectOption("aleatoria");
+  await page.locator("#trazar-ruta").click(); await page.waitForFunction(()=>Boolean(EvoRuta.resultados.geometria("aleatoria")));
+  assert.equal(geometrias,1);
+  await page.locator("#reproducir-ruta").click(); assert.equal(await page.locator("#detener-ruta").isDisabled(),false);
+  await page.locator("#detener-ruta").click();
+  // Una edición invalida matriz, geometría, referencias e historial.
+  await page.evaluate(()=>EvoRuta.interaccion.mover("A",18.461,-97.39));
+  assert.equal(await page.evaluate(()=>EvoRuta.resultados.matriz()),null);
+  assert.equal(await page.locator("#cantidad-ejecuciones").textContent(),"0");
+  assert.match(await page.locator("#aviso-experimentos").textContent(),/se eliminó/);
+  fallar=true; await page.locator("#ejecutar").click();
+  await page.waitForFunction(()=>document.getElementById("estado-resultados").textContent.includes("Error de red simulado"));
+  assert.equal(await page.locator("#iniciar").isDisabled(),true);
+  assert.equal(await page.evaluate(()=>EvoRuta.resultados.obtener()),null);
+  // Respuesta atrasada de búsqueda tras cancelar/modificar no repone resultados.
+  let liberar; const espera=new Promise(r=>liberar=r);
+  await page.unroute("**/api/buscar");
+  await page.route("**/api/buscar",async r=>{await espera;try{await r.fulfill({json:[{lat:18,lng:-97,nombre:"Obsoleto"}]});}catch{}});
+  await page.locator("#consulta").fill("Consulta tardía"); await page.locator("#busqueda button").click();
+  await page.waitForFunction(()=>EvoRuta.servicios.ocupado());
+  await page.locator("#cancelar-consulta").click(); await page.locator("#restablecer").click(); liberar();
+  await page.waitForTimeout(80); assert.equal(await page.locator("#resultados-busqueda button").count(),0);
+  await page.screenshot({path:process.env.EVORUTA_CAPTURA || "tests/escritorio.png",fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:process.env.EVORUTA_CAPTURA_MOVIL || "tests/movil.png",fullPage:true});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+  assert.deepEqual(errores,[]);
+  console.log("Navegador: flujo 8/30, bloqueos, pausa/paso/continuación, repetición, métricas, geometría, errores, cancelación y móvil OK. Servicios simulados.");
+ } finally {await browser.close();await new Promise(r=>servidor.close(r));}
+})().catch(e=>{console.error(e);process.exitCode=1;});

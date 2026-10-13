@@ -17,7 +17,7 @@ EvoRuta.grafica = (function () {
     const izquierda = 62, arriba = 22, fondo = alto - 42, derecha = ancho - 18;
     const distancias = historial.map(function (dato) { return dato.distancia; });
     const minimo = Math.min.apply(null, distancias), maximo = Math.max.apply(null, distancias);
-    const margen = Math.max((maximo - minimo) * 0.1, maximo * 0.02, 1);
+    const margen = Math.max((maximo - minimo) * 0.1, maximo * 0.02, 0.001);
     const inferior = Math.max(0, minimo - margen), superior = maximo + margen;
     const ultima = historial[historial.length - 1].generacion;
     function x(g) { return izquierda + g / Math.max(1, ultima) * (derecha - izquierda); }
@@ -51,9 +51,9 @@ EvoRuta.grafica = (function () {
     contexto.arc(x(final.generacion), y(final.distancia), 3, 0, Math.PI * 2); contexto.fill();
   }
   function actualizar(datos) {
-    historial = datos.map(function (dato) { return { ...dato }; });
+    historial = datos.map(function (dato) { return { ...dato, distancia: dato.distancia / 1000 }; });
     const resumen = historial.length ? historial.length + " registros, de generación 0 a " + historial[historial.length - 1].generacion +
-      ". Distancia inicial: " + historial[0].distancia.toFixed(2) + "; mejor actual: " + historial[historial.length - 1].distancia.toFixed(2) + "."
+      ". Distancia inicial: " + historial[0].distancia.toFixed(3) + "; mejor actual: " + historial[historial.length - 1].distancia.toFixed(3) + " km."
       : "Inicia la evolución para ver su historial.";
     document.getElementById("resumen-grafica").textContent = resumen;
     canvas.setAttribute("aria-label", resumen);

@@ -1,50 +1,33 @@
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
-const contexto = { window: {} };
-contexto.window = contexto;
-vm.createContext(contexto);
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/rutas.js'), 'utf8'), contexto);
-const rutas = contexto.EvoRuta.rutas;
-
-test('Distancia conocida: triángulo 3-4-5 incluye los tres lados y el regreso', () => {
-  const almacen = { x: 0, y: 0 };
-  const destinos = [{ id: 'D1', x: 3, y: 0 }, { id: 'D2', x: 3, y: 4 }];
-  assert.equal(rutas.distanciaEuclidiana(almacen, destinos[1]), 5);
-  assert.equal(rutas.distanciaTotal(['D1', 'D2'], almacen, destinos), 12);
-  assert.equal(rutas.distanciaTotal(['D2', 'D1'], almacen, destinos), 12);
-  assert.equal(rutas.distanciaTotal([], almacen, []), 0);
-  assert.equal(rutas.distanciaTotal(['D1'], almacen, destinos.slice(0, 1)), 6);
+const {test}=require("node:test"),assert=require("node:assert/strict");
+const {cargar,escenario}=require("./ayudas.cjs");
+const {rutas:r,matrices:m}=cargar(["matriz","rutas"]);
+test("Matriz dirigida: sumar salida y regreso, sin simetrizar",()=>{
+ const puntos=[{id:"A"},{id:"D1"},{id:"D2"}],matriz=m.crear(puntos,[[0,10,90],[30,0,20],[40,50,0]]);
+ assert.equal(r.distanciaTotal(["D1","D2"],puntos[0],puntos.slice(1),matriz),70);
+ assert.equal(r.distanciaTotal(["D2","D1"],puntos[0],puntos.slice(1),matriz),170);
 });
-
-test('Validación rechaza faltantes, repeticiones, almacén e IDs ajenos', () => {
-  const destinos = [{ id: 'D1', x: 1, y: 0 }, { id: 'D9', x: 2, y: 0 }];
-  assert.equal(rutas.validarRuta(['D9', 'D1'], destinos), true);
-  for (const ruta of [null, [], ['D1'], ['D1', 'D1'], ['A', 'D1'], ['D1', 'D2'], ['D1', 'D9', 'D1']]) {
-    assert.equal(rutas.validarRuta(ruta, destinos), false);
-    assert.throws(() => rutas.distanciaTotal(ruta, { x: 0, y: 0 }, destinos));
-  }
-  assert.equal(rutas.validarRuta(['D1', 'D9'], [destinos[0], destinos[0]]), false);
+test("Vecino utiliza la fila de origen y desempata por ID",()=>{
+ const p=[{id:"A"},{id:"D2"},{id:"D10"},{id:"D9"}],matriz=m.crear(p,[[0,10,10,20],[3,0,99,88],[100,50,0,2],[1,3,6,0]]);
+ assert.deepEqual(Array.from(r.vecinoMasCercano(p[0],p.slice(1),matriz)),["D10","D9","D2"]);
 });
-
-test('Vecino parte del almacén y desempata por ID sin depender del orden original', () => {
-  const almacen = { x: 0, y: 0 };
-  const destinos = [{ id: 'D2', x: -1, y: 0 }, { id: 'D10', x: 1, y: 0 }, { id: 'D9', x: 2, y: 0 }];
-  const esperado = ['D10', 'D9', 'D2'];
-  assert.deepEqual(Array.from(rutas.vecinoMasCercano(almacen, destinos)), esperado);
-  assert.deepEqual(Array.from(rutas.vecinoMasCercano(almacen, destinos.slice().reverse())), esperado);
+test("No hay distancia alternativa ante matriz ausente, incompleta, desconectada u obsoleta",()=>{
+ const e=escenario();
+ assert.throws(()=>r.distanciaTotal(e.referencia,e.almacen,e.destinos));
+ assert.throws(()=>m.crear([{id:"A"},{id:"D1"}],[[0,null],[10,0]]));
+ assert.throws(()=>m.crear([{id:"A"}],[[NaN]]));
+ assert.throws(()=>m.crear([{id:"A"},{id:"A"}],[[0,1],[1,0]]));
+ assert.throws(()=>m.crear([{id:"A"}],[new Array(1)]));
+ e.almacen.lat+=.001;
+ assert.throws(()=>r.distanciaTotal(e.referencia,e.almacen,e.destinos,e.matriz));
 });
-
-test('Ambos métodos producen permutaciones válidas para 8 y 30 sin mutar los datos', () => {
-  for (const cantidad of [8, 30]) {
-    const destinos = Array.from({ length: cantidad }, (_, i) => ({ id: 'D' + (i * 2 + 1), x: i, y: i % 7 }));
-    const antes = JSON.stringify(destinos);
-    for (const azar of [() => 0, () => 0.5, () => 0.999999]) {
-      assert.equal(rutas.validarRuta(rutas.aleatoria(destinos, azar), destinos), true);
-    }
-    assert.equal(rutas.validarRuta(rutas.vecinoMasCercano({ x: 50, y: 49 }, destinos), destinos), true);
-    assert.equal(JSON.stringify(destinos), antes);
-  }
+test("Permutaciones y validación para 8 y 30; matriz copiada e inmutable",()=>{
+ for(const n of [8,30]) {
+  const e=escenario(n),previo=JSON.stringify(e.destinos);
+  for(const ruta of [r.aleatoria(e.destinos),r.vecinoMasCercano(e.almacen,e.destinos,e.matriz)]) assert.equal(r.validarRuta(ruta,e.destinos),true);
+  for(const ruta of [[],["A"],e.referencia.slice(1),e.referencia.map(()=>"D1")]) assert.equal(r.validarRuta(ruta,e.destinos),false);
+  assert.equal(JSON.stringify(e.destinos),previo);
+  assert.equal(Object.isFrozen(e.matriz.distancias[0]),true);
+ }
+ const distancias=[[0,2],[9,0]], mat=m.crear([{id:"A"},{id:"D1"}],distancias);
+ distancias[0][1]=999; assert.equal(mat.distancia("A","D1"),2);
 });

@@ -1,0 +1,4 @@
+config.local.json
+tests/*.png
+node_modules/
+

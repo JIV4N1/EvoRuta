@@ -1,127 +1,95 @@
 "use strict";
-
-// Los controles conectan la edición con el dibujo y las referencias del escenario.
-(function () {
-  const datos = EvoRuta.datos;
-  const dibujo = EvoRuta.dibujo;
-  const selector = document.getElementById("punto");
-  const campoX = document.getElementById("coordenada-x");
-  const campoY = document.getElementById("coordenada-y");
-  const estado = document.getElementById("estado");
-  let modo = "mover";
-  let arrastre = null;
-  function bloqueado() { return EvoRuta.simulacion && EvoRuta.simulacion.bloqueada(); }
-  const instrucciones = {
-    mover: "Arrastra un destino o el almacén para cambiar su posición.",
-    agregar: "Toca el interior del plano para agregar un destino. Máximo: 30 destinos.",
-    eliminar: "Toca un destino para eliminarlo. Necesitas 8 para ejecutar; el almacén se conserva."
-  };
-  function mostrarCoordenadas() {
-    const punto = datos.puntos().find(function (actual) { return actual.id === selector.value; });
-    if (!punto) return;
-    campoX.value = punto.x;
-    campoY.value = punto.y;
-    document.getElementById("eliminar-seleccion").disabled = punto.id === "A";
+EvoRuta.interaccion=(function () {
+  const datos=EvoRuta.datos, el=id=>document.getElementById(id);
+  let modo="mover", versionBusqueda=0;
+  function bloqueado() {return EvoRuta.servicios.ocupado() || EvoRuta.simulacion.bloqueada();}
+  function controles() {
+    const bloqueada=bloqueado();
+    document.querySelectorAll("[data-edicion], .herramientas button, .campos-editor input, .campos-editor select, .campos-editor button, #resultados-busqueda button, #lista-puntos button").forEach(c=>c.disabled=bloqueada);
+    el("parametros-geneticos").disabled=bloqueada;
+    el("eliminar-seleccion").disabled=bloqueada || el("punto").value==="A";
+    el("agregar-centro").disabled=bloqueada || datos.escenario.destinos.length>=30;
+    el("cancelar-consulta").disabled=!EvoRuta.servicios.ocupado();
+    EvoRuta.resultados.controles();
+    EvoRuta.animacion.actualizar();
+    EvoRuta.dibujo.dibujar();
+  }
+  function coordenadas() {
+    const p=datos.puntos().find(p=>p.id===el("punto").value);
+    if(!p) return;
+    el("coordenada-x").value=p.lat; el("coordenada-y").value=p.lng;
+    controles();
   }
   function actualizar(id) {
-    const seleccion = id || selector.value;
-    selector.replaceChildren();
-    datos.puntos().forEach(function (punto) {
-      const opcion = document.createElement("option");
-      opcion.value = punto.id;
-      opcion.textContent = punto.id === "A" ? "A · Almacén" : punto.id + " · Destino";
-      selector.appendChild(opcion);
+    versionBusqueda++;
+    el("resultados-busqueda").replaceChildren();
+    el("estado-busqueda").textContent="Busca explícitamente un lugar o añade puntos en el mapa.";
+    const seleccion=id || el("punto").value;
+    el("punto").replaceChildren(); el("lista-puntos").replaceChildren();
+    datos.puntos().forEach(p=>{
+      const texto=p.id+(p.id==="A"?" · Almacén":" · Destino");
+      const o=document.createElement("option"); o.value=p.id; o.textContent=texto; el("punto").appendChild(o);
+      const li=document.createElement("li"), b=document.createElement("button");
+      b.type="button"; b.textContent=texto+" · "+(p.nombre || "Sin dirección textual")+" · "+p.lat.toFixed(6)+", "+p.lng.toFixed(6);
+      b.addEventListener("click",()=>{if(!bloqueado()){el("punto").value=p.id; coordenadas(); EvoRuta.dibujo.mapa.setView([p.lat,p.lng],16);}});
+      li.appendChild(b); el("lista-puntos").appendChild(li);
     });
-    if (datos.puntos().some(function (punto) { return punto.id === seleccion; })) selector.value = seleccion;
-    document.getElementById("conteo").textContent = datos.escenario.destinos.length + " destinos";
-    document.getElementById("agregar-centro").disabled = datos.escenario.destinos.length >= datos.limites.maximo;
-    const validacion = datos.validar();
-    document.getElementById("validacion-escenario").textContent = validacion.faltantes
-      ? "Faltan " + validacion.faltantes + " destino" + (validacion.faltantes === 1 ? "" : "s") + " para ejecutar. Se requieren entre 8 y 30, sin contar el almacén."
-      : "Escenario válido: " + validacion.cantidad + " destinos. Puedes calcular las dos referencias.";
-    EvoRuta.resultados.actualizar();
-    mostrarCoordenadas();
-    dibujo.dibujar();
+    if(datos.puntos().some(p=>p.id===seleccion)) el("punto").value=seleccion;
+    const v=datos.validar();
+    el("conteo").textContent=v.cantidad+" destinos";
+    el("validacion-escenario").textContent=v.valido?"Escenario válido. Obtén la matriz antes de iniciar.":"Faltan "+v.faltantes+" destinos. Se requieren de 8 a 30.";
+    EvoRuta.resultados.actualizar(); coordenadas(); controles();
   }
-  function agregar(x, y) {
-    if (bloqueado()) return;
-    const punto = datos.agregar(x, y);
-    estado.textContent = punto ? "Destino " + punto.id + " agregado." : datos.escenario.destinos.length >= datos.limites.maximo
-      ? "Se alcanzó el máximo de 30 destinos." : "Ya hay un punto en esas coordenadas. Elige otra posición.";
-    actualizar(punto ? punto.id : null);
+  function mover(id,lat,lng,nombre="") {
+    if(bloqueado()) return;
+    const cambio=datos.mover(id,lat,lng,nombre);
+    el("estado").textContent=cambio?"Ubicación de "+id+" actualizada. La dirección anterior se descarta al mover el punto.":"Coordenadas inválidas o coincidentes.";
+    actualizar(id);
+  }
+  function agregar(lat,lng,nombre="") {
+    if(bloqueado()) return;
+    const p=datos.agregar(lat,lng,nombre);
+    el("estado").textContent=p?"Destino "+p.id+" agregado.":"No se agregó: máximo 30 destinos, coordenadas inválidas o punto coincidente.";
+    actualizar(p && p.id);
   }
   function eliminar(id) {
-    if (bloqueado()) return;
-    estado.textContent = datos.eliminar(id) ? "Destino " + id + " eliminado." : "No se puede eliminar el almacén.";
+    if(bloqueado()) return;
+    el("estado").textContent=datos.eliminar(id)?"Destino eliminado.":"El almacén se conserva.";
     actualizar();
   }
-  document.querySelectorAll("[data-modo]").forEach(function (boton) {
-    boton.addEventListener("click", function () {
-      if (bloqueado()) return;
-      modo = boton.dataset.modo;
-      document.querySelectorAll("[data-modo]").forEach(function (actual) { actual.setAttribute("aria-pressed", String(actual === boton)); });
-      document.getElementById("instruccion").textContent = instrucciones[modo];
-      dibujo.canvas.style.cursor = modo === "mover" ? "grab" : "crosshair";
-    });
+  function seleccionar(id) {if(bloqueado()) return; if(modo==="eliminar") eliminar(id); else {el("punto").value=id; coordenadas();}}
+  function clic(lat,lng) {if(bloqueado()) return; if(modo==="agregar") agregar(lat,lng); else if(modo==="almacen") mover("A",lat,lng);}
+  document.querySelectorAll("[data-modo]").forEach(b=>b.addEventListener("click",()=>{
+    if(bloqueado()) return; modo=b.dataset.modo;
+    document.querySelectorAll("[data-modo]").forEach(c=>c.setAttribute("aria-pressed",String(c===b)));
+    el("instruccion").textContent={mover:"Arrastra los puntos o selecciónalos para editar sus coordenadas.",agregar:"Pulsa el mapa para agregar un destino.",eliminar:"Pulsa un destino para eliminarlo.",almacen:"Pulsa el mapa para cambiar la ubicación del almacén."}[modo];
+  }));
+  el("punto").addEventListener("change",coordenadas);
+  el("aplicar").addEventListener("click",()=>{
+    if(el("coordenada-x").reportValidity() && el("coordenada-y").reportValidity()) mover(el("punto").value,Number(el("coordenada-x").value),Number(el("coordenada-y").value));
   });
-  dibujo.canvas.addEventListener("pointerdown", function (evento) {
-    if (bloqueado() || !evento.isPrimary || evento.button !== 0 || arrastre) return;
-    const posicion = dibujo.posicionEvento(evento);
-    const punto = dibujo.buscarPunto(posicion.x, posicion.y);
-    const coordenadas = dibujo.aEscenario(posicion.x, posicion.y);
-    if (modo === "agregar") {
-      if (coordenadas.x >= 0 && coordenadas.x <= 100 && coordenadas.y >= 0 && coordenadas.y <= 100) agregar(coordenadas.x, coordenadas.y);
-      else estado.textContent = "Agrega el destino dentro de la cuadrícula de 0 a 100.";
-    } else if (punto && modo === "eliminar") eliminar(punto.id);
-    else if (punto) {
-      arrastre = { id: punto.id, puntero: evento.pointerId, desplazamientoX: punto.x - coordenadas.x, desplazamientoY: punto.y - coordenadas.y };
-      dibujo.canvas.setPointerCapture(evento.pointerId);
-      actualizar(punto.id);
-    }
+  el("eliminar-seleccion").addEventListener("click",()=>eliminar(el("punto").value));
+  el("agregar-centro").addEventListener("click",()=>{const c=EvoRuta.dibujo.mapa.getCenter(); agregar(c.lat,c.lng);});
+  el("restablecer").addEventListener("click",()=>{if(bloqueado()) return; datos.restablecer(); actualizar("A"); EvoRuta.dibujo.mapa.setView([18.462,-97.392],15); el("estado").textContent="Ejemplo de coordenadas en Tehuacán restaurado; no representa entregas reales.";});
+  el("cancelar-consulta").addEventListener("click",()=>{versionBusqueda++; EvoRuta.servicios.cancelar(); el("estado-busqueda").textContent="Consulta cancelada.";});
+  el("busqueda").addEventListener("submit",async e=>{
+    e.preventDefault(); if(bloqueado()) return;
+    const consulta=el("consulta").value.trim(); if(consulta.length<3) return;
+    const version=++versionBusqueda, firma=datos.firma(), objetivo=el("destino-busqueda").value;
+    el("resultados-busqueda").replaceChildren(); el("estado-busqueda").textContent="Buscando lugares…";
+    try {
+      const r=await EvoRuta.servicios.consultar("buscar",{consulta});
+      if(version!==versionBusqueda || firma!==datos.firma()) return;
+      el("estado-busqueda").textContent=r.length?"Selecciona el lugar correcto. Revisa las coordenadas antes de calcular.":"No se encontraron lugares. Prueba incluyendo Tehuacán y Puebla o coloca el punto en el mapa.";
+      r.forEach(p=>{
+        const b=document.createElement("button"); b.type="button";
+        b.textContent=(p.nombre || "Sin dirección textual")+" · "+p.lat.toFixed(6)+", "+p.lng.toFixed(6);
+        b.addEventListener("click",()=>{if(bloqueado() || firma!==datos.firma()) return; if(objetivo==="almacen") mover("A",p.lat,p.lng,p.nombre); else agregar(p.lat,p.lng,p.nombre); EvoRuta.dibujo.mapa.setView([p.lat,p.lng],16);});
+        const li=document.createElement("li"); li.appendChild(b); el("resultados-busqueda").appendChild(li);
+      });
+    } catch(error) {if(version===versionBusqueda) el("estado-busqueda").textContent=error.name==="AbortError"?"Búsqueda cancelada o tiempo agotado.":error.message;}
+    finally {controles();}
   });
-  dibujo.canvas.addEventListener("pointermove", function (evento) {
-    if (bloqueado() || !arrastre || evento.pointerId !== arrastre.puntero) return;
-    const posicion = dibujo.posicionEvento(evento);
-    const coordenadas = dibujo.aEscenario(posicion.x, posicion.y);
-    arrastre.bloqueado = !datos.mover(arrastre.id, coordenadas.x + arrastre.desplazamientoX, coordenadas.y + arrastre.desplazamientoY);
-    if (arrastre.bloqueado) estado.textContent = "No se pueden superponer puntos. Se conserva la última posición válida.";
-    EvoRuta.resultados.actualizar();
-    mostrarCoordenadas();
-    dibujo.dibujar();
-  });
-  function terminarArrastre(evento) {
-    if (!arrastre || evento.pointerId !== arrastre.puntero) return;
-    estado.textContent = arrastre.bloqueado ? "No se pueden superponer puntos. Se conserva la última posición válida."
-      : "Posición de " + arrastre.id + " actualizada.";
-    arrastre = null;
-    if (dibujo.canvas.hasPointerCapture(evento.pointerId)) dibujo.canvas.releasePointerCapture(evento.pointerId);
-  }
-  dibujo.canvas.addEventListener("pointerup", terminarArrastre);
-  dibujo.canvas.addEventListener("pointercancel", terminarArrastre);
-  dibujo.canvas.addEventListener("lostpointercapture", terminarArrastre);
-  selector.addEventListener("change", mostrarCoordenadas);
-  document.getElementById("aplicar").addEventListener("click", function () {
-    if (bloqueado()) return;
-    if (!campoX.value.trim() || !campoY.value.trim() || !campoX.checkValidity() || !campoY.checkValidity()) {
-      estado.textContent = "Introduce X e Y entre 0 y 100, con hasta un decimal.";
-      return;
-    }
-    const movido = datos.mover(selector.value, Number(campoX.value), Number(campoY.value));
-    estado.textContent = movido ? "Coordenadas de " + selector.value + " actualizadas."
-      : "Ya hay un punto en esas coordenadas. Se conserva la posición anterior.";
-    actualizar();
-  });
-  document.getElementById("agregar-centro").addEventListener("click", function () { agregar(50, 50); });
-  document.getElementById("eliminar-seleccion").addEventListener("click", function () { eliminar(selector.value); });
-  document.getElementById("restablecer").addEventListener("click", function () {
-    if (bloqueado()) return;
-    if (arrastre) terminarArrastre({ pointerId: arrastre.puntero });
-    datos.restablecer();
-    estado.textContent = "Escenario inicial restablecido: un almacén y ocho destinos.";
-    actualizar("A");
-  });
-  // ResizeObserver también detecta cambios de tamaño del panel sin recargar.
-  if (typeof ResizeObserver !== "undefined") new ResizeObserver(dibujo.dibujar).observe(dibujo.canvas.parentElement);
-  window.addEventListener("resize", dibujo.dibujar);
-  actualizar("A");
+  return {actualizar,controles,clic,mover,seleccionar};
 })();
+EvoRuta.interaccion.actualizar();

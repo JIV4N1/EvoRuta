@@ -1,4 +1,4 @@
-/* Identidad visual local: no se descargan fuentes, iconos ni imágenes. */
+/* Identidad visual local; los mosaicos cartográficos se consultan por internet. */
 :root {
   color-scheme: light;
   --fondo: #f0f3fa;
@@ -207,3 +207,19 @@ footer { display: flex; justify-content: space-between; gap: 18px; max-width: 14
   html { scroll-behavior: auto; }
   button { transition: none; }
 }
+/* Mapa vial: mantener controles y atribución legibles en pantallas pequeñas. */
+#mapa { height: 510px; width: 100%; border-radius: 18px; border: 1px solid #ccd8e4; z-index: 0; margin-top: 16px; background: #e6edf3; }
+#mapa .leaflet-control a { color: #19375c; }
+#mapa .leaflet-control-attribution { font-size: 10px; line-height: 1.5; }
+.punto-mapa { display: grid; place-items: center; color: white; background: #216ca0; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 7px #112b4b88; font: bold 12px system-ui; }
+.almacen-mapa { border-radius: 10px; background: #ad571a; }
+.vehiculo-mapa { font-size: 30px; filter: drop-shadow(0 2px 2px #17254155); }
+.busqueda { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-block: 18px 8px; }
+.busqueda label:first-child { flex: 1 1 240px; }
+.busqueda label { display: grid; gap: 6px; font-size: .85rem; }
+.busqueda input, .busqueda select { width: 100%; min-height: 42px; }
+.aviso-privacidad { background: #edf5fc; color: #284965; padding: 14px; border-radius: 12px; font-size: .82rem; line-height: 1.6; }
+.lista-lugares { padding: 0; list-style: none; max-height: 280px; overflow: auto; }
+.lista-lugares button { width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; margin-bottom: 6px; }
+.creditos { text-align: center; color: #4a617b; font-size: .8rem; padding: 0 16px; }
+@media(max-width:600px) { #mapa { height: 390px; } .busqueda > * { flex: 1 1 100%; } .controles-recorrido { flex-wrap: wrap; } }
